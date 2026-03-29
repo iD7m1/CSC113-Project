@@ -1,13 +1,18 @@
 public class FirstClassTicket extends Ticket {
     private boolean includesSpaAccess;
 
-    public FirstClassTicket(String passengerName, String seatNumber, double basePrice, boolean includesSpaAccess) {
-        super(passengerName, seatNumber, basePrice);
+    public FirstClassTicket(String passengerName, String seatNumber, boolean includesSpaAccess) {
+        super(passengerName, seatNumber);
         this.includesSpaAccess = includesSpaAccess;
+        this.basePrice = 500.0 + (includesSpaAccess ? 100.0 : 0.0); // Set a base price for first class tickets
     }
 
     public double getBaggageAllowance() {
         return 50.0;
+    }
+
+    public boolean getSpaAccess() {
+        return includesSpaAccess;
     }
 
     public double calculateRefundAmount() {
@@ -19,5 +24,13 @@ public class FirstClassTicket extends Ticket {
 
     public boolean isRefundable() {
         return true;
+    }
+
+    public String toString() {
+        StringBuilder str = new StringBuilder();
+        str.append("First Class Ticket\n");
+        str.append(super.toString());
+        str.append("Includes Spa Access: ").append(includesSpaAccess ? "Yes" : "No").append("\n");
+        return str.toString();
     }
 }

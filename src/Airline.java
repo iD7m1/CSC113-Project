@@ -10,14 +10,14 @@ public class Airline {
     }
 
     public boolean addFlight(Flight f) { // add method
-        if (searchFlight(f) != -1 || numOfFlights == flights.length)
+        if (searchFlight(f.getFlightNumber()) != -1 || numOfFlights == flights.length)
             return false;
         flights[numOfFlights++] = new Flight(f);
         return true;
     }
 
-    public boolean removeFlight(Flight f) { // remove method
-        int index = searchFlight(f);
+    public boolean removeFlight(String flightNumber) { // remove method
+        int index = searchFlight(flightNumber);
         if (index == -1)
             return false;
         flights[index] = flights[numOfFlights - 1];
@@ -26,18 +26,21 @@ public class Airline {
         return true;
     }
 
-    public int searchFlight(Flight id) { // searth method
+    public int searchFlight(String flightNumber) { // search method
         for (int i = 0; i < numOfFlights; i++)
-            if (flights[i].getFlightNumber().equals(id.getFlightNumber()))
+            if (flights[i].getFlightNumber().equals(flightNumber))
                 return i;
         return -1;
     }
 
     public String toString() {
-        String str = "Name: " + name + "\n";
-        for (int i = 0; i < numOfFlights; i++)
-            str += flights[i].toString();
-        return str;
+        StringBuilder str = new StringBuilder();
+        str.append("Airline: ").append(name).append("\n");
+        str.append("Flights:\n");
+        for (int i = 0; i < numOfFlights; i++) {
+            str.append(flights[i].toString()).append("\n");
+        }
+        return str.toString();
     }
 
 }
