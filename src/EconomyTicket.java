@@ -24,9 +24,9 @@ public class EconomyTicket extends Ticket {
 
     public String toString() {
         StringBuilder str = new StringBuilder();
-        str.append("Economy Ticket\n");
+        str.append("Economy Ticket\n\t\t");
         str.append(super.toString());
-        str.append("Meal Included: ").append(mealIncluded ? "Yes" : "No").append("\n");
+        str.append("Meal Included: ").append(mealIncluded ? "Yes" : "No").append("\n\t\t");
         return str.toString();
     }
 }

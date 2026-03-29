@@ -12,7 +12,9 @@ public class Airline {
     public boolean addFlight(Flight f) { // add method
         if (searchFlight(f.getFlightNumber()) != -1 || numOfFlights == flights.length)
             return false;
-        flights[numOfFlights++] = new Flight(f);
+        flights[numOfFlights] = new Flight(f); // composition relation
+        flights[numOfFlights].setAirline(this); // Set the airline reference in the flight
+        numOfFlights++;
         return true;
     }
 
@@ -33,12 +35,23 @@ public class Airline {
         return -1;
     }
 
+    public Flight getFlight(String flightNumber) {
+        int index = searchFlight(flightNumber);
+        if (index != -1)
+            return flights[index];
+        return null;
+    }
+
+    public String getName() {
+        return name;
+    }
+
     public String toString() {
         StringBuilder str = new StringBuilder();
         str.append("Airline: ").append(name).append("\n");
-        str.append("Flights:\n");
+        str.append("Flights:");
         for (int i = 0; i < numOfFlights; i++) {
-            str.append(flights[i].toString()).append("\n");
+            str.append("\n\t").append(flights[i].toString()).append("\n");
         }
         return str.toString();
     }

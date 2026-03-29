@@ -2,6 +2,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 public class Flight {
+    private Airline airline;
     private String flightNumber;
     private String origin;
     private String destination;
@@ -46,12 +47,20 @@ public class Flight {
         return flightNumber;
     }
 
+    public void setAirline(Airline airline) {
+        this.airline = airline;
+    }
+
+    public Airline getAirline() {
+        return airline;
+    }
+
     public boolean addTicket(Ticket t) {
         if (numOfTickets == tickets.length || searchTicket(t.getTicketId()) != -1
                 || (t instanceof FirstClassTicket && numOfFirstClassTickets == 20)
                 || (t instanceof EconomyTicket && numOfEconomyTickets == 80))
             return false;
-        tickets[numOfTickets++] = t;
+        tickets[numOfTickets++] = t; // aggregation relation
         if (t instanceof FirstClassTicket)
             numOfFirstClassTickets++;
         else if (t instanceof EconomyTicket)
@@ -92,7 +101,7 @@ public class Flight {
     }
 
     public void land(LocalDateTime dateTime) {
-        if (status.startsWith("In Air"))
+        if (status.startsWith("Departed"))
             status = "Landed - " + dateTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
     }
 
@@ -125,20 +134,21 @@ public class Flight {
 
     public String toString() {
         StringBuilder str = new StringBuilder();
-        str.append("Flight ").append(flightNumber)
-                .append("\nRoute: ").append(origin).append(" -> ").append(destination)
-                .append("\nDeparture: ").append(departureTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")))
-                .append("\nArrival: ").append(arrivalTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")))
-                .append("\nStatus: ").append(status)
-                .append("\nTotal Baggage Allowance: ").append(totalBaggageAllowance()).append(" kg")
-                .append("\nTotal Revenue: $").append(String.format("%.2f", totalRevenue()));
+        str.append("Flight ").append(flightNumber).append(" (").append(airline.getName()).append(")")
+                .append("\n\tRoute: ").append(origin).append(" -> ").append(destination)
+                .append("\n\tDeparture: ")
+                .append(departureTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")))
+                .append("\n\tArrival: ").append(arrivalTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")))
+                .append("\n\tStatus: ").append(status)
+                .append("\n\tTotal Baggage Allowance: ").append(totalBaggageAllowance()).append(" kg")
+                .append("\n\tTotal Revenue: $").append(String.format("%.2f", totalRevenue()));
 
         if (numOfTickets == 0) {
-            str.append("\n- No tickets booked.");
+            str.append("\n\t- No tickets booked.");
         } else {
-            str.append("\nTickets (").append(numOfTickets).append("):");
+            str.append("\n\tTickets (").append(numOfTickets).append("):");
             for (int i = 0; i < numOfTickets; i++) {
-                str.append("\n").append(i + 1).append(") ").append(tickets[i]);
+                str.append("\n\t\t").append(i + 1).append(") ").append(tickets[i]);
             }
         }
 
