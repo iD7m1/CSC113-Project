@@ -9,6 +9,7 @@ public class Flight {
     private LocalDateTime departureTime;
     private LocalDateTime arrivalTime;
     private String status;
+    private double totalRevenue;
     private Ticket[] tickets;
     private int numOfTickets;
     private int numOfFirstClassTickets;
@@ -22,6 +23,7 @@ public class Flight {
         this.departureTime = departureTime;
         this.arrivalTime = arrivalTime;
         this.status = "Scheduled";
+        this.totalRevenue = 0.0;
         this.tickets = new Ticket[100]; // Assuming a maximum of 100 tickets per flight
         this.numOfTickets = 0;
         this.numOfFirstClassTickets = 0;
@@ -35,6 +37,7 @@ public class Flight {
         this.departureTime = t.departureTime;
         this.arrivalTime = t.arrivalTime;
         this.status = t.status;
+        this.totalRevenue = t.totalRevenue;
         this.tickets = new Ticket[100];
         for (int i = 0; i < t.numOfTickets; i++)
             this.tickets[i] = t.tickets[i];
@@ -55,6 +58,10 @@ public class Flight {
         return airline;
     }
 
+    public double getTotalRevenue() {
+        return totalRevenue;
+    }
+
     public boolean addTicket(Ticket t) {
         if (numOfTickets == tickets.length || searchTicket(t.getTicketId()) != -1
                 || (t instanceof FirstClassTicket && numOfFirstClassTickets == 20)
@@ -65,10 +72,11 @@ public class Flight {
             numOfFirstClassTickets++;
         else if (t instanceof EconomyTicket)
             numOfEconomyTickets++;
+        totalRevenue += t.basePrice;
         return true;
     }
 
-    public boolean removeTicket(String id) {
+    public boolean refundTicket(String id) {
         int removedTicket = searchTicket(id);
         if (removedTicket == -1)
             return false;
@@ -77,6 +85,7 @@ public class Flight {
             numOfFirstClassTickets--;
         else if (tickets[removedTicket] instanceof EconomyTicket)
             numOfEconomyTickets--;
+        totalRevenue -= tickets[removedTicket].calculateRefundAmount();
         tickets[removedTicket] = tickets[numOfTickets - 1];
         tickets[numOfTickets - 1] = null;
         numOfTickets--;
@@ -121,17 +130,6 @@ public class Flight {
         return totalBaggageAllowance(0);
     }
 
-    // recursive method to calculate the total revenue for all tickets in the flight
-    private double totalRevenue(int index) {
-        if (index == numOfTickets)
-            return 0;
-        return tickets[index].basePrice + totalRevenue(index + 1);
-    }
-
-    public double totalRevenue() {
-        return totalRevenue(0);
-    }
-
     public String toString() {
         StringBuilder str = new StringBuilder();
         str.append("Flight ").append(flightNumber).append(" (").append(airline.getName()).append(")")
@@ -141,7 +139,7 @@ public class Flight {
                 .append("\n\tArrival: ").append(arrivalTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")))
                 .append("\n\tStatus: ").append(status)
                 .append("\n\tTotal Baggage Allowance: ").append(totalBaggageAllowance()).append(" kg")
-                .append("\n\tTotal Revenue: $").append(String.format("%.2f", totalRevenue()));
+                .append("\n\tTotal Revenue: $").append(String.format("%.2f", totalRevenue));
 
         if (numOfTickets == 0) {
             str.append("\n\t- No tickets booked.");

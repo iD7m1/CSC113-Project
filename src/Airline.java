@@ -53,6 +53,8 @@ public class Airline {
         for (int i = 0; i < numOfFlights; i++) {
             str.append("\n\t").append(flights[i].toString()).append("\n");
         }
+        if (numOfFlights == 0)
+            str.append("\n\tNo flights available.");
         return str.toString();
     }
 

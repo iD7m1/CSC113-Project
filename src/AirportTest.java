@@ -19,75 +19,389 @@ public class AirportTest {
 
     public static void main(String[] args) {
 
-        clearScreen();
-        System.out.println("============================================");
-        System.out.println("        Airport Management Console");
-        System.out.println("============================================");
-        pause(1000);
-
         boolean repeat = true;
         while (repeat) {
-            System.out.println(
-                    "\n---------------- Main Menu -----------------"
-                            + "\n1) Create Airline"
-                            + "\n2) Create Flight and Assign to Airline"
-                            + "\n3) Remove Flight"
-                            + "\n4) Add Ticket to Flight"
-                            + "\n5) Remove Ticket from Flight"
-                            + "\n6) Depart Flight (with date/time)"
-                            + "\n7) Land Flight (with date/time)"
-                            + "\n8) Show One Flight Details"
-                            + "\n9) Show All Flights"
-                            + "\n10) Show One Airline Details"
-                            + "\n11) Show All Airlines"
-                            + "\n0) Exit"
-                            + "\n--------------------------------------------");
+            displayMainMenu();
 
-            int choice = readInt("Choose an option: ", 0, 11);
+            int choice = readInt("Choose an option: ", 0, 3);
             switch (choice) {
                 case 1:
-                    createAirline();
+                    handleAirlineMenu();
                     break;
                 case 2:
-                    createFlight();
+                    handleFlightMenu();
                     break;
                 case 3:
-                    removeFlight();
-                    break;
-                case 4:
-                    addTicketToFlight();
-                    break;
-                case 5:
-                    removeTicketFromFlight();
-                    break;
-                case 6:
-                    departFlight();
-                    break;
-                case 7:
-                    landFlight();
-                    break;
-                case 8:
-                    showFlight();
-                    break;
-                case 9:
-                    showAllFlights();
-                    break;
-                case 10:
-                    showAirline();
-                    break;
-                case 11:
-                    showAllAirlines();
+                    handleTicketMenu();
                     break;
                 case 0:
                     repeat = false;
                     printlnBox("Thank you for using Airport Manager.");
                     break;
                 default:
-                    printlnError("Invalid option. Please choose between 0 and 11.");
+                    printlnError("Invalid option. Please choose between 0 and 3.");
+                    break;
             }
         }
 
         input.close();
+    }
+
+    static void displayMainMenu() {
+        clearScreen();
+
+        System.out.println(
+                "---------------- Main Menu -----------------"
+                        + "\n1) Airlines"
+                        + "\n2) Flights"
+                        + "\n3) Tickets"
+                        + "\n0) Exit"
+                        + "\n--------------------------------------------");
+    }
+
+    static void displayAirlineMenu() {
+        clearScreen();
+
+        System.out.println(
+                "-------------- Airlines Menu ---------------"
+                        + "\n1) Create Airline");
+
+        if (numOfAirlines == 0) {
+            System.out.println("No airlines available. Create one to see more options.");
+        } else {
+            for (int i = 0; i < numOfAirlines; i++)
+                System.out.println((i + 2) + ") " + airlineNames[i]);
+        }
+
+        System.out.println("0) Back to Main Menu"
+                + "\n--------------------------------------------");
+    }
+
+    static void displayAirlineMenu(int airlineIndex) {
+        clearScreen();
+
+        Airline airline = airlines[airlineIndex];
+        System.out.println(
+                "---------------- " + airline.getName() + " Menu -----------------"
+                        + "\n1) Show Airline Details"
+                        + "\n2) Add Flight to this Airline"
+                        + "\n3) Remove this Airline");
+
+        for (int i = 0; i < numOfFlights; i++) {
+            if (flights[i].getAirline() == airline) {
+                System.out.println((i + 4) + ") Manage " + flights[i].getFlightNumber() + " Flight");
+            }
+        }
+
+        System.out.println("0) Back to Airlines Menu"
+                + "\n--------------------------------------------");
+    }
+
+    static void handleAirlineMenu() {
+
+        boolean repeat = true;
+        while (repeat) {
+            displayAirlineMenu();
+
+            int choice = readInt("Choose an option: ", 0, numOfAirlines + 1);
+            switch (choice) {
+                case 1:
+                    createAirline();
+                    break;
+                case 0:
+                    repeat = false;
+                    break;
+                default: {
+                    int airlineIndex = choice - 2;
+                    if (airlineIndex >= 0 && airlineIndex < numOfAirlines) {
+                        handleAirlineMenu(airlineIndex);
+                    } else {
+                        printlnError("Invalid option. Please choose between 0 and " + (numOfAirlines + 1) + ".");
+                    }
+                    break;
+                }
+            }
+        }
+    }
+
+    static void handleAirlineMenu(int airlineIndex) {
+        Airline airline = airlines[airlineIndex];
+
+        boolean repeat = true;
+        while (repeat) {
+            displayAirlineMenu(airlineIndex);
+
+            int choice = readInt("Choose an option: ", 0, numOfFlights + 3);
+            switch (choice) {
+                case 0:
+                    repeat = false;
+                    break;
+                case 1:
+                    printlnBox(airline.toString());
+                    pause(3000);
+                    break;
+                case 2:
+                    createFlight(airlineIndex);
+                    break;
+                case 3:
+                    removeAirline(airlineIndex);
+                    repeat = false; // After removing, go back to main airlines menu
+                    break;
+                default: {
+                    int flightIndex = choice - 4;
+                    if (flightIndex >= 0 && flightIndex < numOfFlights
+                            && flights[flightIndex].getAirline() == airline) {
+                        handleFlightMenu(flightIndex, airline.getName());
+                    } else {
+                        printlnError("Invalid option. Please choose between 0 and " + (numOfFlights + 3) + ".");
+                    }
+                    break;
+                }
+            }
+        }
+    }
+
+    static void displayFlightMenu() {
+        clearScreen();
+
+        System.out.println(
+                "---------------- Flights Menu -----------------"
+                        + "\n1) Create Flight");
+
+        if (numOfFlights == 0) {
+            System.out.println("No flights available. Create one to see more options.");
+        } else {
+            for (int i = 0; i < numOfFlights; i++)
+                System.out.println(
+                        (i + 2) + ") " + flights[i].getFlightNumber() + " (" + flights[i].getAirline().getName() + ")");
+        }
+
+        System.out.println("0) Back to Main Menu"
+                + "\n--------------------------------------------");
+    }
+
+    static void displayFlightMenu(int flightIndex) {
+        clearScreen();
+
+        Flight flight = flights[flightIndex];
+        System.out.println(
+                "---------------- " + flight.getFlightNumber() + " Menu -----------------"
+                        + "\n1) Show Flight Details"
+                        + "\n2) Add Ticket to this Flight"
+                        + "\n3) Remove Ticket from this Flight"
+                        + "\n4) Depart Flight"
+                        + "\n5) Land Flight"
+                        + "\n0) Back to Flights Menu"
+                        + "\n--------------------------------------------");
+    }
+
+    static void displayFlightMenu(int flightIndex, String airlineName) {
+        clearScreen();
+
+        Flight flight = flights[flightIndex];
+        System.out.println(
+                "---------------- " + airlineName + " - " + flight.getFlightNumber() + " Menu -----------------"
+                        + "\n1) Show Flight Details"
+                        + "\n2) Add Ticket to this Flight"
+                        + "\n3) Remove Ticket from this Flight"
+                        + "\n4) Depart Flight"
+                        + "\n5) Land Flight"
+                        + "\n6) Remove this Flight"
+                        + "\n0) Back to " + airlineName + " Flights Menu"
+                        + "\n--------------------------------------------");
+    }
+
+    static void handleFlightMenu() {
+        if (numOfAirlines == 0) {
+            printlnError("No airlines available. Create an airline first.");
+            return;
+        }
+
+        boolean repeat = true;
+        while (repeat) {
+            displayFlightMenu();
+
+            int choice = readInt("Choose an option: ", 0, numOfFlights + 1);
+            switch (choice) {
+                case 1:
+                    createFlight();
+                    break;
+                case 0:
+                    repeat = false;
+                    break;
+                default: {
+                    int flightIndex = choice - 2;
+                    if (flightIndex >= 0 && flightIndex < numOfFlights) {
+                        handleFlightMenu(flightIndex);
+                    } else {
+                        printlnError("Invalid option. Please choose between 0 and " + (numOfFlights + 1) + ".");
+                    }
+                    break;
+                }
+            }
+        }
+    }
+
+    static void handleFlightMenu(int flightIndex) {
+        Flight flight = flights[flightIndex];
+
+        boolean repeat = true;
+        while (repeat) {
+            displayFlightMenu(flightIndex);
+
+            int choice = readInt("Choose an option: ", 0, 6);
+            switch (choice) {
+                case 1:
+                    printlnBox(flight.toString());
+                    pause(3000);
+                    break;
+                case 2:
+                    addTicketToFlight(flightIndex);
+                    break;
+                case 3:
+                    refundTicketFromFlight(flightIndex);
+                    break;
+                case 4:
+                    departFlight(flightIndex);
+                    break;
+                case 5:
+                    landFlight(flightIndex);
+                    break;
+                case 6:
+                    removeFlight(flightIndex, true);
+                    repeat = false; // After removing, go back to airline's flight menu
+                    break;
+                case 0:
+                    repeat = false;
+                    break;
+                default:
+                    printlnError("Invalid option. Please choose between 0 and 6.");
+                    break;
+            }
+        }
+    }
+
+    static void handleFlightMenu(int flightIndex, String airlineName) {
+        Flight flight = flights[flightIndex];
+
+        boolean repeat = true;
+        while (repeat) {
+            displayFlightMenu(flightIndex, airlineName);
+
+            int choice = readInt("Choose an option: ", 0, 6);
+            switch (choice) {
+                case 1:
+                    printlnBox(flight.toString());
+                    pause(3000);
+                    break;
+                case 2:
+                    addTicketToFlight(flightIndex);
+                    break;
+                case 3:
+                    refundTicketFromFlight(flightIndex);
+                    break;
+                case 4:
+                    departFlight(flightIndex);
+                    break;
+                case 5:
+                    landFlight(flightIndex);
+                    break;
+                case 6:
+                    removeFlight(flightIndex, true);
+                    repeat = false; // After removing, go back to airline's flight menu
+                    break;
+                case 0:
+                    repeat = false;
+                    break;
+                default:
+                    printlnError("Invalid option. Please choose between 0 and 6.");
+                    break;
+            }
+        }
+    }
+
+    static void displayTicketMenu() {
+        clearScreen();
+
+        System.out.print("Select a flight to manage tickets for:\n");
+        for (int i = 0; i < numOfFlights; i++) {
+            System.out.println(
+                    (i + 1) + ") " + flights[i].getFlightNumber() + " (" + flights[i].getAirline().getName() + ")");
+        }
+
+        System.out.println("0) Back to Main Menu"
+                + "\n--------------------------------------------");
+
+    }
+
+    static void displayTicketMenu(int flightIndex) {
+        clearScreen();
+
+        Flight flight = flights[flightIndex];
+        System.out.println(
+                "---------------- " + flight.getFlightNumber() + " Tickets Menu -----------------"
+                        + "\n1) Show All Tickets"
+                        + "\n2) Add Ticket to this Flight"
+                        + "\n3) Remove Ticket from this Flight"
+                        + "\n0) Back to Flights Menu"
+                        + "\n--------------------------------------------");
+    }
+
+    static void handleTicketMenu() {
+        if (numOfFlights == 0) {
+            printlnError("No flights available. Create a flight first.");
+            return;
+        }
+
+        boolean repeat = true;
+        while (repeat) {
+            displayTicketMenu();
+
+            int choice = readInt("Choose a flight: ", 0, numOfFlights);
+            switch (choice) {
+                case 0:
+                    repeat = false;
+                    break;
+                default: {
+                    int flightIndex = choice - 1;
+                    if (flightIndex >= 0 && flightIndex < numOfFlights) {
+                        handleTicketMenu(flightIndex);
+                    } else {
+                        printlnError("Invalid option. Please choose between 0 and " + numOfFlights + ".");
+                    }
+                    break;
+                }
+            }
+        }
+    }
+
+    static void handleTicketMenu(int flightIndex) {
+        Flight flight = flights[flightIndex];
+
+        boolean repeat = true;
+        while (repeat) {
+            displayTicketMenu(flightIndex);
+
+            int choice = readInt("Choose an option: ", 0, 3);
+            switch (choice) {
+                case 1:
+                    printlnBox(flight.toString());
+                    pause(3000);
+                    break;
+                case 2:
+                    addTicketToFlight(flightIndex);
+                    break;
+                case 3:
+                    refundTicketFromFlight(flightIndex);
+                    break;
+                case 0:
+                    repeat = false;
+                    break;
+                default:
+                    printlnError("Invalid option. Please choose between 0 and 3.");
+                    break;
+            }
+        }
     }
 
     static void createAirline() {
@@ -110,25 +424,48 @@ public class AirportTest {
         printlnSuccess("Airline created successfully.");
     }
 
-    static void createFlight() {
-        if (numOfAirlines == 0) {
-            printlnError("Create an airline first.");
-            return;
+    static void removeAirline(int airlineIndex) {
+        // Remove all flights of this airline first
+        Airline airline = airlines[airlineIndex];
+        for (int i = 0; i < numOfFlights; i++) {
+            if (flights[i].getAirline() == airline) {
+                removeFlight(i, false);
+                i--; // Adjust index after removal
+            }
         }
+
+        // Shift airlines array to remove the airline
+        for (int i = airlineIndex; i < numOfAirlines - 1; i++) {
+            airlines[i] = airlines[i + 1];
+            airlineNames[i] = airlineNames[i + 1];
+        }
+        airlines[numOfAirlines - 1] = null;
+        airlineNames[numOfAirlines - 1] = null;
+        numOfAirlines--;
+
+        printlnSuccess("Airline removed successfully.");
+    }
+
+    static void createFlight() {
         if (numOfFlights == MAX_FLIGHTS) {
             printlnError("Cannot create more flights. Capacity reached.");
             return;
         }
 
-        String owner = readNonEmpty("Airline name: ");
-        int airlineIndex = findAirlineIndex(owner);
-        if (airlineIndex == -1) {
-            printlnError("Airline not found.");
-            return;
+        System.out.println("Select an airline for this flight:");
+        for (int i = 0; i < numOfAirlines; i++)
+            System.out.println((i + 1) + ") " + airlineNames[i]);
+
+        System.out.println("0) Back to previous menu");
+
+        int airlineChoice = readInt("Choose an airline: ", 0, numOfAirlines);
+        if (airlineChoice == 0) {
+            return; // Go back to previous menu
         }
+        int airlineIndex = airlineChoice - 1;
 
         String flightNumber = readNonEmpty("Flight number: ");
-        if (findFlightIndex(flightNumber) != -1) {
+        if (airlines[airlineIndex].searchFlight(flightNumber) != -1) {
             printlnError("Flight number already exists.");
             return;
         }
@@ -151,25 +488,49 @@ public class AirportTest {
         printlnSuccess("Flight created and assigned successfully.");
     }
 
-    static void removeFlight() {
-        int flightIndex = chooseFlight();
-        if (flightIndex < 0)
+    static void createFlight(int airlineIndex) {
+        if (numOfFlights == MAX_FLIGHTS) {
+            printlnError("Cannot create more flights. Capacity reached.");
             return;
+        }
 
+        String flightNumber = readNonEmpty("Flight number: ");
+        if (airlines[airlineIndex].searchFlight(flightNumber) != -1) {
+            printlnError("Flight number already exists.");
+            return;
+        }
+
+        String origin = readNonEmpty("Origin: ");
+        String destination = readNonEmpty("Destination: ");
+        LocalDateTime departure = readDateTime("Planned departure (yyyy-MM-dd HH:mm:ss): ");
+        LocalDateTime arrival = readDateTime("Planned arrival (yyyy-MM-dd HH:mm:ss): ");
+
+        Flight flight = new Flight(flightNumber, origin, destination, departure, arrival);
+        boolean added = airlines[airlineIndex].addFlight(flight);
+        if (!added) {
+            printlnError("Could not add flight to airline (duplicate or airline capacity reached).");
+            return;
+        }
+
+        flights[numOfFlights] = airlines[airlineIndex].getFlight(flightNumber); // Get the actual flight object from the
+                                                                                // airline
+        numOfFlights++;
+        printlnSuccess("Flight created and assigned successfully.");
+    }
+
+    static void removeFlight(int flightIndex, boolean printSuccess) {
         flights[flightIndex].getAirline().removeFlight(flights[flightIndex].getFlightNumber());
 
         flights[flightIndex] = flights[numOfFlights - 1];
         flights[numOfFlights - 1] = null;
         numOfFlights--;
 
-        printlnSuccess("Flight removed successfully.");
+        if (printSuccess) {
+            printlnSuccess("Flight removed successfully.");
+        }
     }
 
-    static void addTicketToFlight() {
-        int flightIndex = chooseFlight();
-        if (flightIndex < 0)
-            return;
-
+    static void addTicketToFlight(int flightIndex) {
         Flight flight = flights[flightIndex];
         System.out.println("Ticket Types: 1) Economy  2) Basic Economy  3) First Class");
         int type = readInt("Select ticket type: ", 1, 3);
@@ -207,113 +568,32 @@ public class AirportTest {
         printlnSuccess("Ticket added successfully. Ticket ID: " + ticket.getTicketId());
     }
 
-    static void removeTicketFromFlight() {
-        int flightIndex = chooseFlight();
-        if (flightIndex < 0)
-            return;
-
-        String ticketId = readNonEmpty("Ticket ID to remove: ");
-        boolean removed = flights[flightIndex].removeTicket(ticketId);
+    static void refundTicketFromFlight(int flightIndex) {
+        String ticketId = readNonEmpty("Ticket ID to refund: ");
+        boolean removed = flights[flightIndex].refundTicket(ticketId);
         if (!removed) {
             printlnError("Ticket not found.");
             return;
         }
 
-        printlnSuccess("Ticket removed successfully.");
+        printlnSuccess("Ticket refunded successfully.");
     }
 
-    static void departFlight() {
-        int flightIndex = chooseFlight();
-        if (flightIndex < 0)
-            return;
-
+    static void departFlight(int flightIndex) {
         LocalDateTime departDate = readDateTime("Actual departure (yyyy-MM-dd HH:mm:ss): ");
         flights[flightIndex].depart(departDate);
         printlnSuccess("Flight departure status updated.");
     }
 
-    static void landFlight() {
-        int flightIndex = chooseFlight();
-        if (flightIndex < 0)
-            return;
-
+    static void landFlight(int flightIndex) {
         LocalDateTime landDate = readDateTime("Actual landing (yyyy-MM-dd HH:mm:ss): ");
         flights[flightIndex].land(landDate);
         printlnSuccess("Flight landing status updated.");
     }
 
-    static void showFlight() {
-        int flightIndex = chooseFlight();
-        if (flightIndex < 0)
-            return;
-
-        printlnBox(flights[flightIndex].toString());
-    }
-
-    static void showAllFlights() {
-        if (numOfFlights == 0) {
-            printlnError("No flights available.");
-            return;
-        }
-
-        for (int i = 0; i < numOfFlights; i++) {
-            printlnBox(flights[i].toString());
-        }
-    }
-
-    static void showAirline() {
-        if (numOfAirlines == 0) {
-            printlnError("No airlines available.");
-            return;
-        }
-
-        String name = readNonEmpty("Airline name: ");
-        int airlineIndex = findAirlineIndex(name);
-        if (airlineIndex == -1) {
-            printlnError("Airline not found.");
-            return;
-        }
-
-        printlnBox(airlines[airlineIndex].toString());
-    }
-
-    static void showAllAirlines() {
-        if (numOfAirlines == 0) {
-            printlnError("No airlines available.");
-            return;
-        }
-
-        for (int i = 0; i < numOfAirlines; i++) {
-            printlnBox(airlines[i].toString());
-        }
-    }
-
-    static int chooseFlight() {
-        if (numOfFlights == 0) {
-            printlnError("No flights available.");
-            return -2;
-        }
-
-        String flightNumber = readNonEmpty("Flight number: ");
-        int index = findFlightIndex(flightNumber);
-        if (index == -1) {
-            printlnError("Flight not found.");
-        }
-        return index;
-    }
-
     static int findAirlineIndex(String name) {
         for (int i = 0; i < numOfAirlines; i++) {
             if (airlineNames[i].equalsIgnoreCase(name)) {
-                return i;
-            }
-        }
-        return -1;
-    }
-
-    static int findFlightIndex(String flightNumber) {
-        for (int i = 0; i < numOfFlights; i++) {
-            if (flights[i].getFlightNumber().equalsIgnoreCase(flightNumber)) {
                 return i;
             }
         }
