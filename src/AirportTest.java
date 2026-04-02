@@ -82,15 +82,23 @@ public class AirportTest {
 
         Airline airline = airlines[airlineIndex];
         System.out.println(
-                "---------------- " + airline.getName() + " Menu -----------------"
+                repeat("-", 18 - (airline.getName().length() / 2)) + " " + airline.getName() + " Menu "
+                        + repeat("-",
+                                (18 - (airline.getName().length() / 2)) + (airline.getName().length() % 2 == 0 ? 1 : 0))
                         + "\n1) Show Airline Details"
                         + "\n2) Add Flight to this Airline"
                         + "\n3) Remove this Airline");
 
+        int flightCount = 0;
+        int indexOffset = 4; // Start flight options from 4
         for (int i = 0; i < numOfFlights; i++) {
             if (flights[i].getAirline() == airline) {
-                System.out.println((i + 4) + ") Manage " + flights[i].getFlightNumber() + " Flight");
+                System.out.println((indexOffset++) + ") Manage " + flights[i].getFlightNumber() + " Flight");
+                flightCount++;
             }
+        }
+        if (flightCount == 0) {
+            System.out.println("No flights for this airline. Add one to see more options.");
         }
 
         System.out.println("0) Back to Airlines Menu"
@@ -138,7 +146,8 @@ public class AirportTest {
                     break;
                 case 1:
                     printlnBox(airline.toString());
-                    pause(3000);
+                    System.out.print("\nPress Enter to continue... ");
+                    input.nextLine();
                     break;
                 case 2:
                     createFlight(airlineIndex);
@@ -148,11 +157,19 @@ public class AirportTest {
                     repeat = false; // After removing, go back to main airlines menu
                     break;
                 default: {
-                    int flightIndex = choice - 4;
-                    if (flightIndex >= 0 && flightIndex < numOfFlights
-                            && flights[flightIndex].getAirline() == airline) {
-                        handleFlightMenu(flightIndex, airline.getName());
-                    } else {
+                    int flightOptionIndex = choice - 4;
+                    int flightCount = 0;
+                    for (int i = 0; i < numOfFlights; i++) {
+                        if (flights[i].getAirline() == airline) {
+                            if (flightCount == flightOptionIndex) {
+                                handleFlightMenu(i, airline.getName());
+                                break;
+                            }
+                            flightCount++;
+                        }
+                    }
+
+                    if (flightOptionIndex < 0 || flightOptionIndex > flightCount) {
                         printlnError("Invalid option. Please choose between 0 and " + (numOfFlights + 3) + ".");
                     }
                     break;
@@ -165,7 +182,7 @@ public class AirportTest {
         clearScreen();
 
         System.out.println(
-                "---------------- Flights Menu -----------------"
+                "--------------- Flights Menu ---------------"
                         + "\n1) Create Flight");
 
         if (numOfFlights == 0) {
@@ -185,10 +202,13 @@ public class AirportTest {
 
         Flight flight = flights[flightIndex];
         System.out.println(
-                "---------------- " + flight.getFlightNumber() + " Menu -----------------"
+                repeat("-", 18 - (flight.getFlightNumber().length() / 2))
+                        + " " + flight.getFlightNumber() + " Menu " + repeat("-",
+                                (18 - (flight.getFlightNumber().length() / 2))
+                                        + (flight.getFlightNumber().length() % 2 == 0 ? 1 : 0))
                         + "\n1) Show Flight Details"
                         + "\n2) Add Ticket to this Flight"
-                        + "\n3) Remove Ticket from this Flight"
+                        + "\n3) Refund Ticket from this Flight"
                         + "\n4) Depart Flight"
                         + "\n5) Land Flight"
                         + "\n0) Back to Flights Menu"
@@ -200,10 +220,14 @@ public class AirportTest {
 
         Flight flight = flights[flightIndex];
         System.out.println(
-                "---------------- " + airlineName + " - " + flight.getFlightNumber() + " Menu -----------------"
+                repeat("-", 16 - (airlineName.length() / 2) - (flight.getFlightNumber().length() / 2)) + " "
+                        + airlineName + " - " + flight.getFlightNumber() + " Menu "
+                        + repeat("-",
+                                (16 - (airlineName.length() / 2) - (flight.getFlightNumber().length() / 2))
+                                        + (airlineName.length() % 2 == 0 ? 1 : 0))
                         + "\n1) Show Flight Details"
                         + "\n2) Add Ticket to this Flight"
-                        + "\n3) Remove Ticket from this Flight"
+                        + "\n3) Refund Ticket from this Flight"
                         + "\n4) Depart Flight"
                         + "\n5) Land Flight"
                         + "\n6) Remove this Flight"
@@ -253,7 +277,8 @@ public class AirportTest {
             switch (choice) {
                 case 1:
                     printlnBox(flight.toString());
-                    pause(3000);
+                    System.out.print("\nPress Enter to continue... ");
+                    input.nextLine();
                     break;
                 case 2:
                     addTicketToFlight(flightIndex);
@@ -292,7 +317,8 @@ public class AirportTest {
             switch (choice) {
                 case 1:
                     printlnBox(flight.toString());
-                    pause(3000);
+                    System.out.print("\nPress Enter to continue... ");
+                    input.nextLine();
                     break;
                 case 2:
                     addTicketToFlight(flightIndex);
@@ -342,7 +368,7 @@ public class AirportTest {
                 "---------------- " + flight.getFlightNumber() + " Tickets Menu -----------------"
                         + "\n1) Show All Tickets"
                         + "\n2) Add Ticket to this Flight"
-                        + "\n3) Remove Ticket from this Flight"
+                        + "\n3) Refund Ticket from this Flight"
                         + "\n0) Back to Flights Menu"
                         + "\n--------------------------------------------");
     }
@@ -386,7 +412,8 @@ public class AirportTest {
             switch (choice) {
                 case 1:
                     printlnBox(flight.toString());
-                    pause(3000);
+                    System.out.print("\nPress Enter to continue... ");
+                    input.nextLine();
                     break;
                 case 2:
                     addTicketToFlight(flightIndex);
@@ -672,6 +699,13 @@ public class AirportTest {
         System.out.println("============================================");
         System.out.println(message);
         System.out.println("============================================");
+    }
+
+    static String repeat(String str, int count) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < count; i++)
+            sb.append(str);
+        return sb.toString();
     }
 
     // Pause helper: sleeps for ms milliseconds, handles interruption properly
