@@ -1,7 +1,8 @@
+import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
-public class Flight {
+public class Flight implements Serializable {
     private Airline airline;
     private String flightNumber;
     private String origin;

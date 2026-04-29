@@ -1,3 +1,4 @@
+import java.io.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -7,6 +8,9 @@ public class AirportTest {
     static final int MAX_AIRLINES = 20;
     static final int MAX_FLIGHTS = 200;
     static final DateTimeFormatter INPUT_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+    static final String DATA_FILE_NAME = "airport_state.data";
+    static final File DATA_FILE = new File(DATA_FILE_NAME);
 
     static Airline[] airlines = new Airline[MAX_AIRLINES];
     static String[] airlineNames = new String[MAX_AIRLINES];
@@ -18,6 +22,7 @@ public class AirportTest {
     static Scanner input = new Scanner(System.in);
 
     public static void main(String[] args) {
+        loadState();
 
         boolean repeat = true;
         while (repeat) {
@@ -35,6 +40,7 @@ public class AirportTest {
                     handleTicketMenu();
                     break;
                 case 0:
+                    saveState();
                     repeat = false;
                     printlnBox("Thank you for using Airport Manager.");
                     break;
@@ -45,6 +51,51 @@ public class AirportTest {
         }
 
         input.close();
+    }
+
+    static void loadState() {
+        if (!DATA_FILE.exists()) {
+            return;
+        }
+
+        try {
+            ObjectInputStream in = new ObjectInputStream(new FileInputStream(DATA_FILE));
+            airlines = (Airline[]) in.readObject();
+            airlineNames = (String[]) in.readObject();
+            flights = (Flight[]) in.readObject();
+            numOfAirlines = in.readInt();
+            numOfFlights = in.readInt();
+            in.close();
+
+            // Ensure airlineNames are consistent with airlines
+            for (int i = 0; i < numOfAirlines; i++) {
+                if (airlines[i] != null) {
+                    airlineNames[i] = airlines[i].getName();
+                }
+            }
+        } catch (Exception e) {
+            airlines = new Airline[MAX_AIRLINES];
+            airlineNames = new String[MAX_AIRLINES];
+            flights = new Flight[MAX_FLIGHTS];
+            numOfAirlines = 0;
+            numOfFlights = 0;
+            printlnError("Saved data could not be loaded. Starting with a fresh workspace.");
+        }
+    }
+
+    static void saveState() {
+        try {
+            ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(DATA_FILE));
+            out.writeObject(airlines);
+            out.writeObject(airlineNames);
+            out.writeObject(flights);
+            out.writeInt(numOfAirlines);
+            out.writeInt(numOfFlights);
+            out.close();
+        } catch (IOException e) {
+            printlnError("Could not save data to file.");
+            return;
+        }
     }
 
     static void displayMainMenu() {
@@ -448,6 +499,7 @@ public class AirportTest {
         airlines[numOfAirlines] = new Airline(name, maxFlights);
         airlineNames[numOfAirlines] = name;
         numOfAirlines++;
+        saveState();
         printlnSuccess("Airline created successfully.");
     }
 
@@ -470,6 +522,7 @@ public class AirportTest {
         airlineNames[numOfAirlines - 1] = null;
         numOfAirlines--;
 
+        saveState();
         printlnSuccess("Airline removed successfully.");
     }
 
@@ -512,6 +565,7 @@ public class AirportTest {
         flights[numOfFlights] = airlines[airlineIndex].getFlight(flightNumber); // Get the actual flight object from the
                                                                                 // airline
         numOfFlights++;
+        saveState();
         printlnSuccess("Flight created and assigned successfully.");
     }
 
@@ -542,6 +596,7 @@ public class AirportTest {
         flights[numOfFlights] = airlines[airlineIndex].getFlight(flightNumber); // Get the actual flight object from the
                                                                                 // airline
         numOfFlights++;
+        saveState();
         printlnSuccess("Flight created and assigned successfully.");
     }
 
@@ -553,6 +608,7 @@ public class AirportTest {
         numOfFlights--;
 
         if (printSuccess) {
+            saveState();
             printlnSuccess("Flight removed successfully.");
         }
     }
@@ -592,6 +648,7 @@ public class AirportTest {
             return;
         }
 
+        saveState();
         printlnSuccess("Ticket added successfully. Ticket ID: " + ticket.getTicketId());
     }
 
@@ -603,18 +660,21 @@ public class AirportTest {
             return;
         }
 
+        saveState();
         printlnSuccess("Ticket refunded successfully.");
     }
 
     static void departFlight(int flightIndex) {
         LocalDateTime departDate = readDateTime("Actual departure (yyyy-MM-dd HH:mm:ss): ");
         flights[flightIndex].depart(departDate);
+        saveState();
         printlnSuccess("Flight departure status updated.");
     }
 
     static void landFlight(int flightIndex) {
         LocalDateTime landDate = readDateTime("Actual landing (yyyy-MM-dd HH:mm:ss): ");
         flights[flightIndex].land(landDate);
+        saveState();
         printlnSuccess("Flight landing status updated.");
     }
 
@@ -667,7 +727,8 @@ public class AirportTest {
             try {
                 return LocalDateTime.parse(value, INPUT_FORMAT);
             } catch (DateTimeParseException e) {
-                printlnError("Use format yyyy-MM-dd HH:mm:ss (example: 2026-03-29 14:30:00).");
+                printlnError(
+                        "Use format yyyy-MM-dd HH:mm:ss (example: " + LocalDateTime.now().format(INPUT_FORMAT) + ").");
             }
         }
     }

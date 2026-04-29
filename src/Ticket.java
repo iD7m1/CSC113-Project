@@ -1,4 +1,6 @@
-public abstract class Ticket implements Refundable {
+import java.io.Serializable;
+
+public abstract class Ticket implements Refundable, Serializable {
     protected String ticketId;
     protected String passengerName;
     protected String seatNumber;

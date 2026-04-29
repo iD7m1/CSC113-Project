@@ -1,4 +1,6 @@
-public class Airline {
+import java.io.Serializable;
+
+public class Airline implements Serializable {
     private String name;
     private Flight[] flights;
     private int numOfFlights;

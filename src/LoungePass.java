@@ -1,4 +1,6 @@
-public class LoungePass implements Refundable {
+import java.io.Serializable;
+
+public class LoungePass implements Refundable, Serializable {
     private String passId;
     private String holderTicketId;
     private int accessLevel; // e.g., 1 for basic, 2 for premium
