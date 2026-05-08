@@ -1,22 +1,23 @@
 import java.io.Serializable;
+import java.util.LinkedList;
 
 public class Airline implements Serializable {
     private String name;
-    private Flight[] flights;
-    private int numOfFlights;
+    private int maxFlights;
+    private LinkedList<Flight> flights;
 
     public Airline(String name, int maxFlights) {
         this.name = name;
-        this.flights = new Flight[maxFlights];
-        this.numOfFlights = 0;
+        this.maxFlights = maxFlights;
+        this.flights = new LinkedList<Flight>();
     }
 
     public boolean addFlight(Flight f) { // add method
-        if (searchFlight(f.getFlightNumber()) != -1 || numOfFlights == flights.length)
+        if (searchFlight(f.getFlightNumber()) != -1 || flights.size() == maxFlights)
             return false;
-        flights[numOfFlights] = new Flight(f); // composition relation
-        flights[numOfFlights].setAirline(this); // Set the airline reference in the flight
-        numOfFlights++;
+        Flight flight = new Flight(f); // composition relation
+        flight.setAirline(this); // Set the airline reference in the flight
+        flights.add(flight);
         return true;
     }
 
@@ -24,15 +25,13 @@ public class Airline implements Serializable {
         int index = searchFlight(flightNumber);
         if (index == -1)
             return false;
-        flights[index] = flights[numOfFlights - 1];
-        flights[numOfFlights - 1] = null;
-        numOfFlights--;
+        flights.remove(index);
         return true;
     }
 
     public int searchFlight(String flightNumber) { // search method
-        for (int i = 0; i < numOfFlights; i++)
-            if (flights[i].getFlightNumber().equals(flightNumber))
+        for (int i = 0; i < flights.size(); i++)
+            if (flights.get(i).getFlightNumber().equals(flightNumber))
                 return i;
         return -1;
     }
@@ -40,7 +39,7 @@ public class Airline implements Serializable {
     public Flight getFlight(String flightNumber) {
         int index = searchFlight(flightNumber);
         if (index != -1)
-            return flights[index];
+            return flights.get(index);
         return null;
     }
 
@@ -48,14 +47,22 @@ public class Airline implements Serializable {
         return name;
     }
 
+    public int getFlightCount() {
+        return flights.size();
+    }
+
+    public Flight getFlight(int index) {
+        return flights.get(index);
+    }
+
     public String toString() {
         StringBuilder str = new StringBuilder();
         str.append("Airline: ").append(name).append("\n");
         str.append("Flights:");
-        for (int i = 0; i < numOfFlights; i++) {
-            str.append("\n\t").append(flights[i].toString()).append("\n");
+        for (Flight flight : flights) {
+            str.append("\n\t").append(flight.toString()).append("\n");
         }
-        if (numOfFlights == 0)
+        if (flights.size() == 0)
             str.append("\n\tNo flights available.");
         return str.toString();
     }

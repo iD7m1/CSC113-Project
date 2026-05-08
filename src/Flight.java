@@ -1,6 +1,7 @@
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.LinkedList;
 
 public class Flight implements Serializable {
     private Airline airline;
@@ -11,10 +12,10 @@ public class Flight implements Serializable {
     private LocalDateTime arrivalTime;
     private String status;
     private double totalRevenue;
-    private Ticket[] tickets;
-    private int numOfTickets;
+    private LinkedList<Ticket> tickets;
     private int numOfFirstClassTickets;
     private int numOfEconomyTickets;
+    private static final int MAX_TICKETS = 100;
 
     public Flight(String flightNumber, String origin, String destination, LocalDateTime departureTime,
             LocalDateTime arrivalTime) { // constructor
@@ -25,8 +26,7 @@ public class Flight implements Serializable {
         this.arrivalTime = arrivalTime;
         this.status = "Scheduled";
         this.totalRevenue = 0.0;
-        this.tickets = new Ticket[100]; // Assuming a maximum of 100 tickets per flight
-        this.numOfTickets = 0;
+        this.tickets = new LinkedList<Ticket>();
         this.numOfFirstClassTickets = 0;
         this.numOfEconomyTickets = 0;
     }
@@ -39,10 +39,9 @@ public class Flight implements Serializable {
         this.arrivalTime = t.arrivalTime;
         this.status = t.status;
         this.totalRevenue = t.totalRevenue;
-        this.tickets = new Ticket[100];
-        for (int i = 0; i < t.numOfTickets; i++)
-            this.tickets[i] = t.tickets[i];
-        this.numOfTickets = t.numOfTickets;
+        this.tickets = new LinkedList<>();
+        for (Ticket ticket : t.tickets)
+            this.tickets.add(ticket);
         this.numOfFirstClassTickets = t.numOfFirstClassTickets;
         this.numOfEconomyTickets = t.numOfEconomyTickets;
     }
@@ -64,11 +63,11 @@ public class Flight implements Serializable {
     }
 
     public boolean addTicket(Ticket t) {
-        if (numOfTickets == tickets.length || searchTicket(t.getTicketId()) != -1
+        if (tickets.size() == MAX_TICKETS || searchTicket(t.getTicketId()) != -1
                 || (t instanceof FirstClassTicket && numOfFirstClassTickets == 20)
                 || (t instanceof EconomyTicket && numOfEconomyTickets == 80))
             return false;
-        tickets[numOfTickets++] = t; // aggregation relation
+        tickets.add(t); // aggregation relation
         if (t instanceof FirstClassTicket)
             numOfFirstClassTickets++;
         else if (t instanceof EconomyTicket)
@@ -82,20 +81,19 @@ public class Flight implements Serializable {
         if (removedTicket == -1)
             return false;
 
-        if (tickets[removedTicket] instanceof FirstClassTicket)
+        Ticket removed = tickets.get(removedTicket);
+        if (removed instanceof FirstClassTicket)
             numOfFirstClassTickets--;
-        else if (tickets[removedTicket] instanceof EconomyTicket)
+        else if (removed instanceof EconomyTicket)
             numOfEconomyTickets--;
-        totalRevenue -= tickets[removedTicket].calculateRefundAmount();
-        tickets[removedTicket] = tickets[numOfTickets - 1];
-        tickets[numOfTickets - 1] = null;
-        numOfTickets--;
+        totalRevenue -= removed.calculateRefundAmount();
+        tickets.remove(removedTicket);
         return true;
     }
 
     public int searchTicket(String id) {
-        for (int i = 0; i < numOfTickets; i++) {
-            if (tickets[i].getTicketId().equals(id))
+        for (int i = 0; i < tickets.size(); i++) {
+            if (tickets.get(i).getTicketId().equals(id))
                 return i;
         }
         return -1;
@@ -122,9 +120,9 @@ public class Flight implements Serializable {
     // recursive method to calculate the total baggage allowance for all tickets in
     // the flight
     private double totalBaggageAllowance(int index) {
-        if (index == numOfTickets)
+        if (index == tickets.size())
             return 0;
-        return tickets[index].getBaggageAllowance() + totalBaggageAllowance(index + 1);
+        return tickets.get(index).getBaggageAllowance() + totalBaggageAllowance(index + 1);
     }
 
     public double totalBaggageAllowance() {
@@ -142,12 +140,13 @@ public class Flight implements Serializable {
                 .append("\n\tTotal Baggage Allowance: ").append(totalBaggageAllowance()).append(" kg")
                 .append("\n\tTotal Revenue: $").append(String.format("%.2f", totalRevenue));
 
-        if (numOfTickets == 0) {
+        if (tickets.size() == 0) {
             str.append("\n\t- No tickets booked.");
         } else {
-            str.append("\n\tTickets (").append(numOfTickets).append("):");
-            for (int i = 0; i < numOfTickets; i++) {
-                str.append("\n\t\t").append(i + 1).append(") ").append(tickets[i]);
+            str.append("\n\tTickets (").append(tickets.size()).append("):");
+            int ticketIndex = 1;
+            for (Ticket ticket : tickets) {
+                str.append("\n\t\t").append(ticketIndex++).append(") ").append(ticket);
             }
         }
 

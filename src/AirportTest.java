@@ -2,6 +2,7 @@ import java.io.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.LinkedList;
 import java.util.Scanner;
 
 public class AirportTest {
@@ -12,12 +13,9 @@ public class AirportTest {
     static final String DATA_FILE_NAME = "airport_state.data";
     static final File DATA_FILE = new File(DATA_FILE_NAME);
 
-    static Airline[] airlines = new Airline[MAX_AIRLINES];
-    static String[] airlineNames = new String[MAX_AIRLINES];
-    static int numOfAirlines = 0;
+    static LinkedList<Airline> airlines = new LinkedList<Airline>();
 
-    static Flight[] flights = new Flight[MAX_FLIGHTS];
-    static int numOfFlights = 0;
+    static LinkedList<Flight> flights = new LinkedList<Flight>();
 
     static Scanner input = new Scanner(System.in);
 
@@ -60,25 +58,12 @@ public class AirportTest {
 
         try {
             ObjectInputStream in = new ObjectInputStream(new FileInputStream(DATA_FILE));
-            airlines = (Airline[]) in.readObject();
-            airlineNames = (String[]) in.readObject();
-            flights = (Flight[]) in.readObject();
-            numOfAirlines = in.readInt();
-            numOfFlights = in.readInt();
+            airlines = readAirlineList(in.readObject());
+            flights = readFlightList(in.readObject());
             in.close();
-
-            // Ensure airlineNames are consistent with airlines
-            for (int i = 0; i < numOfAirlines; i++) {
-                if (airlines[i] != null) {
-                    airlineNames[i] = airlines[i].getName();
-                }
-            }
         } catch (Exception e) {
-            airlines = new Airline[MAX_AIRLINES];
-            airlineNames = new String[MAX_AIRLINES];
-            flights = new Flight[MAX_FLIGHTS];
-            numOfAirlines = 0;
-            numOfFlights = 0;
+            airlines = new LinkedList<Airline>();
+            flights = new LinkedList<Flight>();
             printlnError("Saved data could not be loaded. Starting with a fresh workspace.");
         }
     }
@@ -87,10 +72,7 @@ public class AirportTest {
         try {
             ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(DATA_FILE));
             out.writeObject(airlines);
-            out.writeObject(airlineNames);
             out.writeObject(flights);
-            out.writeInt(numOfAirlines);
-            out.writeInt(numOfFlights);
             out.close();
         } catch (IOException e) {
             printlnError("Could not save data to file.");
@@ -117,11 +99,11 @@ public class AirportTest {
                 "-------------- Airlines Menu ---------------"
                         + "\n1) Create Airline");
 
-        if (numOfAirlines == 0) {
+        if (airlines.size() == 0) {
             System.out.println("No airlines available. Create one to see more options.");
         } else {
-            for (int i = 0; i < numOfAirlines; i++)
-                System.out.println((i + 2) + ") " + airlineNames[i]);
+            for (int i = 0; i < airlines.size(); i++)
+                System.out.println((i + 2) + ") " + airlines.get(i).getName());
         }
 
         System.out.println("0) Back to Main Menu"
@@ -131,7 +113,7 @@ public class AirportTest {
     static void displayAirlineMenu(int airlineIndex) {
         clearScreen();
 
-        Airline airline = airlines[airlineIndex];
+        Airline airline = airlines.get(airlineIndex);
         System.out.println(
                 repeat("-", 18 - (airline.getName().length() / 2)) + " " + airline.getName() + " Menu "
                         + repeat("-",
@@ -142,9 +124,10 @@ public class AirportTest {
 
         int flightCount = 0;
         int indexOffset = 4; // Start flight options from 4
-        for (int i = 0; i < numOfFlights; i++) {
-            if (flights[i].getAirline() == airline) {
-                System.out.println((indexOffset++) + ") Manage " + flights[i].getFlightNumber() + " Flight");
+        for (int i = 0; i < flights.size(); i++) {
+            Flight currentFlight = flights.get(i);
+            if (currentFlight.getAirline() == airline) {
+                System.out.println((indexOffset++) + ") Manage " + currentFlight.getFlightNumber() + " Flight");
                 flightCount++;
             }
         }
@@ -162,7 +145,7 @@ public class AirportTest {
         while (repeat) {
             displayAirlineMenu();
 
-            int choice = readInt("Choose an option: ", 0, numOfAirlines + 1);
+            int choice = readInt("Choose an option: ", 0, airlines.size() + 1);
             switch (choice) {
                 case 1:
                     createAirline();
@@ -172,10 +155,10 @@ public class AirportTest {
                     break;
                 default: {
                     int airlineIndex = choice - 2;
-                    if (airlineIndex >= 0 && airlineIndex < numOfAirlines) {
+                    if (airlineIndex >= 0 && airlineIndex < airlines.size()) {
                         handleAirlineMenu(airlineIndex);
                     } else {
-                        printlnError("Invalid option. Please choose between 0 and " + (numOfAirlines + 1) + ".");
+                        printlnError("Invalid option. Please choose between 0 and " + (airlines.size() + 1) + ".");
                     }
                     break;
                 }
@@ -184,13 +167,13 @@ public class AirportTest {
     }
 
     static void handleAirlineMenu(int airlineIndex) {
-        Airline airline = airlines[airlineIndex];
+        Airline airline = airlines.get(airlineIndex);
 
         boolean repeat = true;
         while (repeat) {
             displayAirlineMenu(airlineIndex);
 
-            int choice = readInt("Choose an option: ", 0, numOfFlights + 3);
+            int choice = readInt("Choose an option: ", 0, flights.size() + 3);
             switch (choice) {
                 case 0:
                     repeat = false;
@@ -210,8 +193,8 @@ public class AirportTest {
                 default: {
                     int flightOptionIndex = choice - 4;
                     int flightCount = 0;
-                    for (int i = 0; i < numOfFlights; i++) {
-                        if (flights[i].getAirline() == airline) {
+                    for (int i = 0; i < flights.size(); i++) {
+                        if (flights.get(i).getAirline() == airline) {
                             if (flightCount == flightOptionIndex) {
                                 handleFlightMenu(i, airline.getName());
                                 break;
@@ -221,7 +204,7 @@ public class AirportTest {
                     }
 
                     if (flightOptionIndex < 0 || flightOptionIndex > flightCount) {
-                        printlnError("Invalid option. Please choose between 0 and " + (numOfFlights + 3) + ".");
+                        printlnError("Invalid option. Please choose between 0 and " + (flights.size() + 3) + ".");
                     }
                     break;
                 }
@@ -236,12 +219,13 @@ public class AirportTest {
                 "--------------- Flights Menu ---------------"
                         + "\n1) Create Flight");
 
-        if (numOfFlights == 0) {
+        if (flights.size() == 0) {
             System.out.println("No flights available. Create one to see more options.");
         } else {
-            for (int i = 0; i < numOfFlights; i++)
+            for (int i = 0; i < flights.size(); i++)
                 System.out.println(
-                        (i + 2) + ") " + flights[i].getFlightNumber() + " (" + flights[i].getAirline().getName() + ")");
+                        (i + 2) + ") " + flights.get(i).getFlightNumber() + " (" + flights.get(i).getAirline().getName()
+                                + ")");
         }
 
         System.out.println("0) Back to Main Menu"
@@ -251,7 +235,7 @@ public class AirportTest {
     static void displayFlightMenu(int flightIndex) {
         clearScreen();
 
-        Flight flight = flights[flightIndex];
+        Flight flight = flights.get(flightIndex);
         System.out.println(
                 repeat("-", 18 - (flight.getFlightNumber().length() / 2))
                         + " " + flight.getFlightNumber() + " Menu " + repeat("-",
@@ -269,7 +253,7 @@ public class AirportTest {
     static void displayFlightMenu(int flightIndex, String airlineName) {
         clearScreen();
 
-        Flight flight = flights[flightIndex];
+        Flight flight = flights.get(flightIndex);
         System.out.println(
                 repeat("-", 16 - (airlineName.length() / 2) - (flight.getFlightNumber().length() / 2)) + " "
                         + airlineName + " - " + flight.getFlightNumber() + " Menu "
@@ -287,7 +271,7 @@ public class AirportTest {
     }
 
     static void handleFlightMenu() {
-        if (numOfAirlines == 0) {
+        if (airlines.size() == 0) {
             printlnError("No airlines available. Create an airline first.");
             return;
         }
@@ -296,7 +280,7 @@ public class AirportTest {
         while (repeat) {
             displayFlightMenu();
 
-            int choice = readInt("Choose an option: ", 0, numOfFlights + 1);
+            int choice = readInt("Choose an option: ", 0, flights.size() + 1);
             switch (choice) {
                 case 1:
                     createFlight();
@@ -306,10 +290,10 @@ public class AirportTest {
                     break;
                 default: {
                     int flightIndex = choice - 2;
-                    if (flightIndex >= 0 && flightIndex < numOfFlights) {
+                    if (flightIndex >= 0 && flightIndex < flights.size()) {
                         handleFlightMenu(flightIndex);
                     } else {
-                        printlnError("Invalid option. Please choose between 0 and " + (numOfFlights + 1) + ".");
+                        printlnError("Invalid option. Please choose between 0 and " + (flights.size() + 1) + ".");
                     }
                     break;
                 }
@@ -318,7 +302,7 @@ public class AirportTest {
     }
 
     static void handleFlightMenu(int flightIndex) {
-        Flight flight = flights[flightIndex];
+        Flight flight = flights.get(flightIndex);
 
         boolean repeat = true;
         while (repeat) {
@@ -358,7 +342,7 @@ public class AirportTest {
     }
 
     static void handleFlightMenu(int flightIndex, String airlineName) {
-        Flight flight = flights[flightIndex];
+        Flight flight = flights.get(flightIndex);
 
         boolean repeat = true;
         while (repeat) {
@@ -401,9 +385,10 @@ public class AirportTest {
         clearScreen();
 
         System.out.print("Select a flight to manage tickets for:\n");
-        for (int i = 0; i < numOfFlights; i++) {
+        for (int i = 0; i < flights.size(); i++) {
             System.out.println(
-                    (i + 1) + ") " + flights[i].getFlightNumber() + " (" + flights[i].getAirline().getName() + ")");
+                    (i + 1) + ") " + flights.get(i).getFlightNumber() + " (" + flights.get(i).getAirline().getName()
+                            + ")");
         }
 
         System.out.println("0) Back to Main Menu"
@@ -414,7 +399,7 @@ public class AirportTest {
     static void displayTicketMenu(int flightIndex) {
         clearScreen();
 
-        Flight flight = flights[flightIndex];
+        Flight flight = flights.get(flightIndex);
         System.out.println(
                 "---------------- " + flight.getFlightNumber() + " Tickets Menu -----------------"
                         + "\n1) Show All Tickets"
@@ -425,7 +410,7 @@ public class AirportTest {
     }
 
     static void handleTicketMenu() {
-        if (numOfFlights == 0) {
+        if (flights.size() == 0) {
             printlnError("No flights available. Create a flight first.");
             return;
         }
@@ -434,17 +419,17 @@ public class AirportTest {
         while (repeat) {
             displayTicketMenu();
 
-            int choice = readInt("Choose a flight: ", 0, numOfFlights);
+            int choice = readInt("Choose a flight: ", 0, flights.size());
             switch (choice) {
                 case 0:
                     repeat = false;
                     break;
                 default: {
                     int flightIndex = choice - 1;
-                    if (flightIndex >= 0 && flightIndex < numOfFlights) {
+                    if (flightIndex >= 0 && flightIndex < flights.size()) {
                         handleTicketMenu(flightIndex);
                     } else {
-                        printlnError("Invalid option. Please choose between 0 and " + numOfFlights + ".");
+                        printlnError("Invalid option. Please choose between 0 and " + flights.size() + ".");
                     }
                     break;
                 }
@@ -453,7 +438,7 @@ public class AirportTest {
     }
 
     static void handleTicketMenu(int flightIndex) {
-        Flight flight = flights[flightIndex];
+        Flight flight = flights.get(flightIndex);
 
         boolean repeat = true;
         while (repeat) {
@@ -483,7 +468,7 @@ public class AirportTest {
     }
 
     static void createAirline() {
-        if (numOfAirlines == MAX_AIRLINES) {
+        if (airlines.size() == MAX_AIRLINES) {
             printlnError("Cannot create more airlines. Capacity reached.");
             return;
         }
@@ -496,56 +481,47 @@ public class AirportTest {
 
         int maxFlights = readInt("Maximum number of flights for this airline: ", 1, Integer.MAX_VALUE);
 
-        airlines[numOfAirlines] = new Airline(name, maxFlights);
-        airlineNames[numOfAirlines] = name;
-        numOfAirlines++;
+        airlines.add(new Airline(name, maxFlights));
         saveState();
         printlnSuccess("Airline created successfully.");
     }
 
     static void removeAirline(int airlineIndex) {
         // Remove all flights of this airline first
-        Airline airline = airlines[airlineIndex];
-        for (int i = 0; i < numOfFlights; i++) {
-            if (flights[i].getAirline() == airline) {
+        Airline airline = airlines.get(airlineIndex);
+        for (int i = 0; i < flights.size(); i++) {
+            if (flights.get(i).getAirline() == airline) {
                 removeFlight(i, false);
                 i--; // Adjust index after removal
             }
         }
 
-        // Shift airlines array to remove the airline
-        for (int i = airlineIndex; i < numOfAirlines - 1; i++) {
-            airlines[i] = airlines[i + 1];
-            airlineNames[i] = airlineNames[i + 1];
-        }
-        airlines[numOfAirlines - 1] = null;
-        airlineNames[numOfAirlines - 1] = null;
-        numOfAirlines--;
+        airlines.remove(airlineIndex);
 
         saveState();
         printlnSuccess("Airline removed successfully.");
     }
 
     static void createFlight() {
-        if (numOfFlights == MAX_FLIGHTS) {
+        if (flights.size() == MAX_FLIGHTS) {
             printlnError("Cannot create more flights. Capacity reached.");
             return;
         }
 
         System.out.println("Select an airline for this flight:");
-        for (int i = 0; i < numOfAirlines; i++)
-            System.out.println((i + 1) + ") " + airlineNames[i]);
+        for (int i = 0; i < airlines.size(); i++)
+            System.out.println((i + 1) + ") " + airlines.get(i).getName());
 
         System.out.println("0) Back to previous menu");
 
-        int airlineChoice = readInt("Choose an airline: ", 0, numOfAirlines);
+        int airlineChoice = readInt("Choose an airline: ", 0, airlines.size());
         if (airlineChoice == 0) {
             return; // Go back to previous menu
         }
         int airlineIndex = airlineChoice - 1;
 
         String flightNumber = readNonEmpty("Flight number: ");
-        if (airlines[airlineIndex].searchFlight(flightNumber) != -1) {
+        if (airlines.get(airlineIndex).searchFlight(flightNumber) != -1) {
             printlnError("Flight number already exists.");
             return;
         }
@@ -556,27 +532,26 @@ public class AirportTest {
         LocalDateTime arrival = readDateTime("Planned arrival (yyyy-MM-dd HH:mm:ss): ");
 
         Flight flight = new Flight(flightNumber, origin, destination, departure, arrival);
-        boolean added = airlines[airlineIndex].addFlight(flight);
+        boolean added = airlines.get(airlineIndex).addFlight(flight);
         if (!added) {
             printlnError("Could not add flight to airline (duplicate or airline capacity reached).");
             return;
         }
 
-        flights[numOfFlights] = airlines[airlineIndex].getFlight(flightNumber); // Get the actual flight object from the
-                                                                                // airline
-        numOfFlights++;
+        flights.add(airlines.get(airlineIndex).getFlight(flightNumber)); // Get the actual flight object from the
+                                                                         // airline
         saveState();
         printlnSuccess("Flight created and assigned successfully.");
     }
 
     static void createFlight(int airlineIndex) {
-        if (numOfFlights == MAX_FLIGHTS) {
+        if (flights.size() == MAX_FLIGHTS) {
             printlnError("Cannot create more flights. Capacity reached.");
             return;
         }
 
         String flightNumber = readNonEmpty("Flight number: ");
-        if (airlines[airlineIndex].searchFlight(flightNumber) != -1) {
+        if (airlines.get(airlineIndex).searchFlight(flightNumber) != -1) {
             printlnError("Flight number already exists.");
             return;
         }
@@ -587,25 +562,23 @@ public class AirportTest {
         LocalDateTime arrival = readDateTime("Planned arrival (yyyy-MM-dd HH:mm:ss): ");
 
         Flight flight = new Flight(flightNumber, origin, destination, departure, arrival);
-        boolean added = airlines[airlineIndex].addFlight(flight);
+        boolean added = airlines.get(airlineIndex).addFlight(flight);
         if (!added) {
             printlnError("Could not add flight to airline (duplicate or airline capacity reached).");
             return;
         }
 
-        flights[numOfFlights] = airlines[airlineIndex].getFlight(flightNumber); // Get the actual flight object from the
-                                                                                // airline
-        numOfFlights++;
+        flights.add(airlines.get(airlineIndex).getFlight(flightNumber)); // Get the actual flight object from the
+                                                                         // airline
         saveState();
         printlnSuccess("Flight created and assigned successfully.");
     }
 
     static void removeFlight(int flightIndex, boolean printSuccess) {
-        flights[flightIndex].getAirline().removeFlight(flights[flightIndex].getFlightNumber());
+        flights.get(flightIndex).getAirline().removeFlight(flights.get(flightIndex).getFlightNumber());
 
-        flights[flightIndex] = flights[numOfFlights - 1];
-        flights[numOfFlights - 1] = null;
-        numOfFlights--;
+        flights.remove(flightIndex);
+        saveState();
 
         if (printSuccess) {
             saveState();
@@ -614,7 +587,7 @@ public class AirportTest {
     }
 
     static void addTicketToFlight(int flightIndex) {
-        Flight flight = flights[flightIndex];
+        Flight flight = flights.get(flightIndex);
         System.out.println("Ticket Types: 1) Economy  2) Basic Economy  3) First Class");
         int type = readInt("Select ticket type: ", 1, 3);
 
@@ -654,7 +627,7 @@ public class AirportTest {
 
     static void refundTicketFromFlight(int flightIndex) {
         String ticketId = readNonEmpty("Ticket ID to refund: ");
-        boolean removed = flights[flightIndex].refundTicket(ticketId);
+        boolean removed = flights.get(flightIndex).refundTicket(ticketId);
         if (!removed) {
             printlnError("Ticket not found.");
             return;
@@ -666,25 +639,73 @@ public class AirportTest {
 
     static void departFlight(int flightIndex) {
         LocalDateTime departDate = readDateTime("Actual departure (yyyy-MM-dd HH:mm:ss): ");
-        flights[flightIndex].depart(departDate);
+        flights.get(flightIndex).depart(departDate);
         saveState();
         printlnSuccess("Flight departure status updated.");
     }
 
     static void landFlight(int flightIndex) {
         LocalDateTime landDate = readDateTime("Actual landing (yyyy-MM-dd HH:mm:ss): ");
-        flights[flightIndex].land(landDate);
+        flights.get(flightIndex).land(landDate);
         saveState();
         printlnSuccess("Flight landing status updated.");
     }
 
     static int findAirlineIndex(String name) {
-        for (int i = 0; i < numOfAirlines; i++) {
-            if (airlineNames[i].equalsIgnoreCase(name)) {
+        for (int i = 0; i < airlines.size(); i++) {
+            if (airlines.get(i).getName().equalsIgnoreCase(name)) {
                 return i;
             }
         }
         return -1;
+    }
+
+    static LinkedList<Airline> readAirlineList(Object data) {
+        LinkedList<Airline> list = new LinkedList<>();
+        if (data instanceof LinkedList<?>) {
+            for (Object item : (LinkedList<?>) data) {
+                list.add((Airline) item);
+            }
+        } else if (data instanceof Airline[]) {
+            for (Airline airline : (Airline[]) data) {
+                if (airline != null) {
+                    list.add(airline);
+                }
+            }
+        }
+        return list;
+    }
+
+    static LinkedList<String> readStringList(Object data) {
+        LinkedList<String> list = new LinkedList<>();
+        if (data instanceof LinkedList<?>) {
+            for (Object item : (LinkedList<?>) data) {
+                list.add((String) item);
+            }
+        } else if (data instanceof String[]) {
+            for (String value : (String[]) data) {
+                if (value != null) {
+                    list.add(value);
+                }
+            }
+        }
+        return list;
+    }
+
+    static LinkedList<Flight> readFlightList(Object data) {
+        LinkedList<Flight> list = new LinkedList<>();
+        if (data instanceof LinkedList<?>) {
+            for (Object item : (LinkedList<?>) data) {
+                list.add((Flight) item);
+            }
+        } else if (data instanceof Flight[]) {
+            for (Flight flight : (Flight[]) data) {
+                if (flight != null) {
+                    list.add(flight);
+                }
+            }
+        }
+        return list;
     }
 
     static String readNonEmpty(String prompt) {
