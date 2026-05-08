@@ -2,7 +2,6 @@ import java.io.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
-import java.util.LinkedList;
 import java.util.Scanner;
 
 public class AirportTest {
@@ -13,9 +12,9 @@ public class AirportTest {
     static final String DATA_FILE_NAME = "airport_state.data";
     static final File DATA_FILE = new File(DATA_FILE_NAME);
 
-    static LinkedList<Airline> airlines = new LinkedList<Airline>();
+    static List<Airline> airlines = new List<Airline>();
 
-    static LinkedList<Flight> flights = new LinkedList<Flight>();
+    static List<Flight> flights = new List<Flight>();
 
     static Scanner input = new Scanner(System.in);
 
@@ -62,8 +61,8 @@ public class AirportTest {
             flights = readFlightList(in.readObject());
             in.close();
         } catch (Exception e) {
-            airlines = new LinkedList<Airline>();
-            flights = new LinkedList<Flight>();
+            airlines = new List<Airline>();
+            flights = new List<Flight>();
             printlnError("Saved data could not be loaded. Starting with a fresh workspace.");
         }
     }
@@ -75,7 +74,7 @@ public class AirportTest {
             out.writeObject(flights);
             out.close();
         } catch (IOException e) {
-            printlnError("Could not save data to file.");
+            printlnError("Could not save data to file.\n" + e.getMessage());
             return;
         }
     }
@@ -481,7 +480,7 @@ public class AirportTest {
 
         int maxFlights = readInt("Maximum number of flights for this airline: ", 1, Integer.MAX_VALUE);
 
-        airlines.add(new Airline(name, maxFlights));
+        airlines.insertAtBack(new Airline(name, maxFlights));
         saveState();
         printlnSuccess("Airline created successfully.");
     }
@@ -538,7 +537,7 @@ public class AirportTest {
             return;
         }
 
-        flights.add(airlines.get(airlineIndex).getFlight(flightNumber)); // Get the actual flight object from the
+        flights.insertAtBack(airlines.get(airlineIndex).getFlight(flightNumber)); // Get the actual flight object from the
                                                                          // airline
         saveState();
         printlnSuccess("Flight created and assigned successfully.");
@@ -568,7 +567,7 @@ public class AirportTest {
             return;
         }
 
-        flights.add(airlines.get(airlineIndex).getFlight(flightNumber)); // Get the actual flight object from the
+        flights.insertAtBack(airlines.get(airlineIndex).getFlight(flightNumber)); // Get the actual flight object from the
                                                                          // airline
         saveState();
         printlnSuccess("Flight created and assigned successfully.");
@@ -660,48 +659,32 @@ public class AirportTest {
         return -1;
     }
 
-    static LinkedList<Airline> readAirlineList(Object data) {
-        LinkedList<Airline> list = new LinkedList<>();
-        if (data instanceof LinkedList<?>) {
-            for (Object item : (LinkedList<?>) data) {
-                list.add((Airline) item);
+    static List<Airline> readAirlineList(Object data) {
+        List<Airline> list = new List<Airline>();
+        if (data instanceof List<?>) {
+            for (int i = 0; i < ((List<?>) data).size(); i++) {
+                list.insertAtBack((Airline) ((List<?>) data).get(i));
             }
         } else if (data instanceof Airline[]) {
             for (Airline airline : (Airline[]) data) {
                 if (airline != null) {
-                    list.add(airline);
+                    list.insertAtBack(airline);
                 }
             }
         }
         return list;
     }
 
-    static LinkedList<String> readStringList(Object data) {
-        LinkedList<String> list = new LinkedList<>();
-        if (data instanceof LinkedList<?>) {
-            for (Object item : (LinkedList<?>) data) {
-                list.add((String) item);
-            }
-        } else if (data instanceof String[]) {
-            for (String value : (String[]) data) {
-                if (value != null) {
-                    list.add(value);
-                }
-            }
-        }
-        return list;
-    }
-
-    static LinkedList<Flight> readFlightList(Object data) {
-        LinkedList<Flight> list = new LinkedList<>();
-        if (data instanceof LinkedList<?>) {
-            for (Object item : (LinkedList<?>) data) {
-                list.add((Flight) item);
+    static List<Flight> readFlightList(Object data) {
+        List<Flight> list = new List<Flight>();
+        if (data instanceof List<?>) {
+            for (int i = 0; i < ((List<?>) data).size(); i++) {
+                list.insertAtBack((Flight) ((List<?>) data).get(i));
             }
         } else if (data instanceof Flight[]) {
             for (Flight flight : (Flight[]) data) {
                 if (flight != null) {
-                    list.add(flight);
+                    list.insertAtBack(flight);
                 }
             }
         }

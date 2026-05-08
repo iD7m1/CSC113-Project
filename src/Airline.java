@@ -1,15 +1,14 @@
 import java.io.Serializable;
-import java.util.LinkedList;
 
 public class Airline implements Serializable {
     private String name;
     private int maxFlights;
-    private LinkedList<Flight> flights;
+    private List<Flight> flights;
 
     public Airline(String name, int maxFlights) {
         this.name = name;
         this.maxFlights = maxFlights;
-        this.flights = new LinkedList<Flight>();
+        this.flights = new List<Flight>();
     }
 
     public boolean addFlight(Flight f) { // add method
@@ -17,7 +16,7 @@ public class Airline implements Serializable {
             return false;
         Flight flight = new Flight(f); // composition relation
         flight.setAirline(this); // Set the airline reference in the flight
-        flights.add(flight);
+        flights.insertAtBack(flight);
         return true;
     }
 
@@ -59,8 +58,8 @@ public class Airline implements Serializable {
         StringBuilder str = new StringBuilder();
         str.append("Airline: ").append(name).append("\n");
         str.append("Flights:");
-        for (Flight flight : flights) {
-            str.append("\n\t").append(flight.toString()).append("\n");
+        for (int i = 0; i < flights.size(); i++) {
+            str.append("\n\t").append(flights.get(i).toString()).append("\n");
         }
         if (flights.size() == 0)
             str.append("\n\tNo flights available.");

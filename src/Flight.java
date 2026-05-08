@@ -1,7 +1,6 @@
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.LinkedList;
 
 public class Flight implements Serializable {
     private Airline airline;
@@ -12,7 +11,7 @@ public class Flight implements Serializable {
     private LocalDateTime arrivalTime;
     private String status;
     private double totalRevenue;
-    private LinkedList<Ticket> tickets;
+    private List<Ticket> tickets;
     private int numOfFirstClassTickets;
     private int numOfEconomyTickets;
     private static final int MAX_TICKETS = 100;
@@ -26,7 +25,7 @@ public class Flight implements Serializable {
         this.arrivalTime = arrivalTime;
         this.status = "Scheduled";
         this.totalRevenue = 0.0;
-        this.tickets = new LinkedList<Ticket>();
+        this.tickets = new List<Ticket>();
         this.numOfFirstClassTickets = 0;
         this.numOfEconomyTickets = 0;
     }
@@ -39,9 +38,10 @@ public class Flight implements Serializable {
         this.arrivalTime = t.arrivalTime;
         this.status = t.status;
         this.totalRevenue = t.totalRevenue;
-        this.tickets = new LinkedList<>();
-        for (Ticket ticket : t.tickets)
-            this.tickets.add(ticket);
+        this.tickets = new List<Ticket>();
+        for (int i = 0; i < t.tickets.size(); i++) {
+            this.tickets.insertAtBack(t.tickets.get(i));
+        }
         this.numOfFirstClassTickets = t.numOfFirstClassTickets;
         this.numOfEconomyTickets = t.numOfEconomyTickets;
     }
@@ -67,7 +67,7 @@ public class Flight implements Serializable {
                 || (t instanceof FirstClassTicket && numOfFirstClassTickets == 20)
                 || (t instanceof EconomyTicket && numOfEconomyTickets == 80))
             return false;
-        tickets.add(t); // aggregation relation
+        tickets.insertAtBack(t); // aggregation relation
         if (t instanceof FirstClassTicket)
             numOfFirstClassTickets++;
         else if (t instanceof EconomyTicket)
@@ -145,8 +145,8 @@ public class Flight implements Serializable {
         } else {
             str.append("\n\tTickets (").append(tickets.size()).append("):");
             int ticketIndex = 1;
-            for (Ticket ticket : tickets) {
-                str.append("\n\t\t").append(ticketIndex++).append(") ").append(ticket);
+            for (int i = 0; i < tickets.size(); i++) {
+                str.append("\n\t\t").append(ticketIndex++).append(") ").append(tickets.get(i));
             }
         }
 
