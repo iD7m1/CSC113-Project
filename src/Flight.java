@@ -76,20 +76,29 @@ public class Flight implements Serializable {
         return true;
     }
 
-    public boolean refundTicket(String id) {
-        int removedTicket = searchTicket(id);
-        if (removedTicket == -1)
-            return false;
+    public boolean refundTicket(String id) throws InvalidTicketOperationException {
+    int removedTicket = searchTicket(id);
 
-        Ticket removed = tickets.get(removedTicket);
-        if (removed instanceof FirstClassTicket)
-            numOfFirstClassTickets--;
-        else if (removed instanceof EconomyTicket)
-            numOfEconomyTickets--;
-        totalRevenue -= removed.calculateRefundAmount();
-        tickets.remove(removedTicket);
-        return true;
+    if (removedTicket == -1) {
+        throw new InvalidTicketOperationException("Ticket not found.");
     }
+
+    Ticket removed = tickets.get(removedTicket);
+
+    if (!removed.isRefundable()) {
+        throw new InvalidTicketOperationException("This ticket is non-refundable.");
+    }
+
+    if (removed instanceof FirstClassTicket)
+        numOfFirstClassTickets--;
+    else if (removed instanceof EconomyTicket)
+        numOfEconomyTickets--;
+
+    totalRevenue -= removed.calculateRefundAmount();
+    tickets.remove(removedTicket);
+
+    return true;
+}
 
     public int searchTicket(String id) {
         for (int i = 0; i < tickets.size(); i++) {

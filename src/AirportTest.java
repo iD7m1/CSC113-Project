@@ -336,7 +336,9 @@ public class AirportTest extends JFrame {
         if (ticketId == null || ticketId.trim().isEmpty())
             return;
 
-        if (!flights.get(flightIndex).refundTicket(ticketId.trim())) {
+        try {
+            flights.get(flightIndex).refundTicket(ticketId.trim());
+        } catch (InvalidTicketOperationException ex) {
             JOptionPane.showMessageDialog(this, "Ticket not found.");
             return;
         }
