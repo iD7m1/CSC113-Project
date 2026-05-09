@@ -2,12 +2,15 @@ import java.io.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
-import java.util.Scanner;
+import javax.swing.*;
+import java.awt.*;
 
-public class AirportTest {
+public class AirportTest extends JFrame {
     static final int MAX_AIRLINES = 20;
     static final int MAX_FLIGHTS = 200;
     static final DateTimeFormatter INPUT_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    static final DateTimeFormatter INPUT_FORMAT_ZERO_MINUTES_SECONDS = DateTimeFormatter
+            .ofPattern("yyyy-MM-dd HH:00:00");
 
     static final String DATA_FILE_NAME = "airport_state.data";
     static final File DATA_FILE = new File(DATA_FILE_NAME);
@@ -16,38 +19,123 @@ public class AirportTest {
 
     static List<Flight> flights = new List<Flight>();
 
-    static Scanner input = new Scanner(System.in);
+    // GUI components
+    private CardLayout cardLayout;
+    private JPanel contentPane;
+    // panels and lists for navigation
+    private JPanel airlinesPanelCard;
+    private JPanel airlineDetailPanelCard;
+    private JPanel flightsPanelCard;
+    private JPanel flightDetailPanelCard;
+
+    private JList<String> airlinesJList;
+    private DefaultListModel<String> airlinesListModel;
+
+    private JList<String> airlineFlightsJList;
+    private DefaultListModel<String> airlineFlightsListModel;
+
+    private JList<String> flightsJList;
+    private DefaultListModel<String> flightsListModel;
+
+    private JList<String> flightTicketsJList;
+    private DefaultListModel<String> flightTicketsListModel;
+
+    private JList<String> ticketFlightsJList;
+    private DefaultListModel<String> ticketFlightsListModel;
+
+    private JList<String> ticketFlightDetailsJList;
+    private DefaultListModel<String> ticketFlightDetailsListModel;
+
+    private int currentAirlineIndex = -1;
+    private int currentFlightIndex = -1;
+    private String flightReturnCard = "flights";
+    private int currentTicketFlightIndex = -1;
 
     public static void main(String[] args) {
+
         loadState();
 
-        boolean repeat = true;
-        while (repeat) {
-            displayMainMenu();
+        AirportTest frame = new AirportTest();
+        frame.setVisible(true);
 
-            int choice = readInt("Choose an option: ", 0, 3);
-            switch (choice) {
-                case 1:
-                    handleAirlineMenu();
-                    break;
-                case 2:
-                    handleFlightMenu();
-                    break;
-                case 3:
-                    handleTicketMenu();
-                    break;
-                case 0:
-                    saveState();
-                    repeat = false;
-                    printlnBox("Thank you for using Airport Manager.");
-                    break;
-                default:
-                    printlnError("Invalid option. Please choose between 0 and 3.");
-                    break;
+        // Add window listener to save state on close
+        frame.addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowClosing(java.awt.event.WindowEvent windowEvent) {
+                saveState();
+                System.out.println("State saved. Exiting.");
+                System.exit(0);
             }
-        }
+        });
+    }
 
-        input.close();
+    public AirportTest() {
+        setTitle("Airport Manager");
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setSize(1000, 560);
+        setLocationRelativeTo(null);
+        setResizable(false);
+
+        cardLayout = new CardLayout();
+        contentPane = new JPanel(cardLayout);
+        setContentPane(contentPane);
+
+        // build and add panels (cards)
+        contentPane.add(buildMainPanel(), "main");
+        airlinesPanelCard = buildAirlinesPanel();
+        contentPane.add(airlinesPanelCard, "airlines");
+        airlineDetailPanelCard = buildAirlineDetailPanel();
+        contentPane.add(airlineDetailPanelCard, "airlineDetail");
+        flightsPanelCard = buildFlightsPanel();
+        contentPane.add(flightsPanelCard, "flights");
+        flightDetailPanelCard = buildFlightDetailPanel();
+        contentPane.add(flightDetailPanelCard, "flightDetail");
+        JPanel ticketsPanelCard = buildTicketsPanel();
+        contentPane.add(ticketsPanelCard, "tickets");
+        JPanel ticketDetailPanelCard = buildTicketDetailPanel();
+        contentPane.add(ticketDetailPanelCard, "ticketDetail");
+
+        cardLayout.show(contentPane, "main");
+    }
+
+    private JPanel buildMainPanel() {
+        JPanel panel = new JPanel(null);
+        panel.setBackground(new Color(200, 230, 255));
+
+        JLabel title = new JLabel("Airport Manager");
+        title.setFont(new Font("Tahoma", Font.BOLD, 30));
+        title.setBounds(380, 30, 400, 50);
+        panel.add(title);
+
+        JButton airlinesBtn = new JButton("Airlines");
+        airlinesBtn.setBounds(80, 150, 250, 100);
+        airlinesBtn.setFont(new Font("Tahoma", Font.PLAIN, 20));
+        panel.add(airlinesBtn);
+
+        JButton flightsBtn = new JButton("Flights");
+        flightsBtn.setBounds(370, 150, 250, 100);
+        flightsBtn.setFont(new Font("Tahoma", Font.PLAIN, 20));
+        panel.add(flightsBtn);
+
+        JButton ticketsBtn = new JButton("Tickets");
+        ticketsBtn.setBounds(660, 150, 250, 100);
+        ticketsBtn.setFont(new Font("Tahoma", Font.PLAIN, 20));
+        panel.add(ticketsBtn);
+
+        JButton exitBtn = new JButton("Exit");
+        exitBtn.setBounds(370, 330, 250, 100);
+        exitBtn.setFont(new Font("Tahoma", Font.PLAIN, 20));
+        panel.add(exitBtn);
+
+        airlinesBtn.addActionListener(e -> showAirlinesDialog());
+        flightsBtn.addActionListener(e -> showFlightsDialog());
+        ticketsBtn.addActionListener(e -> showTicketsDialog());
+        exitBtn.addActionListener(e -> {
+            saveState();
+            System.exit(0);
+        });
+
+        return panel;
     }
 
     static void loadState() {
@@ -79,410 +167,720 @@ public class AirportTest {
         }
     }
 
-    static void displayMainMenu() {
-        clearScreen();
-
-        System.out.println(
-                "---------------- Main Menu -----------------"
-                        + "\n1) Airlines"
-                        + "\n2) Flights"
-                        + "\n3) Tickets"
-                        + "\n0) Exit"
-                        + "\n--------------------------------------------");
+    /* GUI dialog handlers */
+    private void showAirlinesDialog() {
+        // switch to airlines card
+        refreshAirlinesList();
+        cardLayout.show(contentPane, "airlines");
     }
 
-    static void displayAirlineMenu() {
-        clearScreen();
+    private void showFlightsDialog() {
+        refreshFlightsList();
+        cardLayout.show(contentPane, "flights");
+    }
 
-        System.out.println(
-                "-------------- Airlines Menu ---------------"
-                        + "\n1) Create Airline");
+    private void showTicketsDialog() {
+        refreshTicketsFlightsList();
+        cardLayout.show(contentPane, "tickets");
+    }
 
+    private Airline chooseAirline() {
         if (airlines.size() == 0) {
-            System.out.println("No airlines available. Create one to see more options.");
+            JOptionPane.showMessageDialog(this, "No airlines available. Create one first.");
+            return null;
+        }
+        String[] names = new String[airlines.size()];
+        for (int i = 0; i < airlines.size(); i++)
+            names[i] = airlines.get(i).getName();
+        String sel = (String) JOptionPane.showInputDialog(this, "Choose airline:", "Airlines",
+                JOptionPane.QUESTION_MESSAGE, null, names, names[0]);
+        if (sel == null)
+            return null;
+        for (int i = 0; i < airlines.size(); i++)
+            if (airlines.get(i).getName().equals(sel))
+                return airlines.get(i);
+        return null;
+    }
+
+    private void guiCreateFlightForAirline(int airlineIndex) {
+        if (airlineIndex < 0 || airlineIndex >= airlines.size()) {
+            JOptionPane.showMessageDialog(this, "Select an airline first.");
+            return;
+        }
+
+        if (flights.size() == MAX_FLIGHTS) {
+            JOptionPane.showMessageDialog(this, "Cannot create more flights. Capacity reached.");
+            return;
+        }
+
+        JTextField flightNumberField = new JTextField();
+        JTextField originField = new JTextField();
+        JTextField destinationField = new JTextField();
+        JTextField departureField = new JTextField(LocalDateTime.now().format(INPUT_FORMAT_ZERO_MINUTES_SECONDS));
+        JTextField arrivalField = new JTextField(
+                LocalDateTime.now().plusHours(2).format(INPUT_FORMAT_ZERO_MINUTES_SECONDS));
+
+        Object[] fields = {
+                "Flight number:", flightNumberField,
+                "Origin:", originField,
+                "Destination:", destinationField,
+                "Planned departure: (yyyy-MM-dd HH:mm:ss)", departureField,
+                "Planned arrival: (yyyy-MM-dd HH:mm:ss)", arrivalField
+        };
+
+        int result = JOptionPane.showConfirmDialog(this, fields, "Create Flight", JOptionPane.OK_CANCEL_OPTION);
+        if (result != JOptionPane.OK_OPTION) {
+            return;
+        }
+
+        String flightNumber = flightNumberField.getText().trim();
+        String origin = originField.getText().trim();
+        String destination = destinationField.getText().trim();
+        if (flightNumber.isEmpty() || origin.isEmpty() || destination.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Fill all fields.");
+            return;
+        }
+
+        if (airlines.get(airlineIndex).searchFlight(flightNumber) != -1) {
+            JOptionPane.showMessageDialog(this, "Flight number already exists.");
+            return;
+        }
+
+        try {
+            LocalDateTime departure = LocalDateTime.parse(departureField.getText().trim(), INPUT_FORMAT);
+            LocalDateTime arrival = LocalDateTime.parse(arrivalField.getText().trim(), INPUT_FORMAT);
+            Flight flight = new Flight(flightNumber, origin, destination, departure, arrival);
+            if (!airlines.get(airlineIndex).addFlight(flight)) {
+                JOptionPane.showMessageDialog(this, "Could not add flight to airline.");
+                return;
+            }
+            flights.insertAtBack(airlines.get(airlineIndex).getFlight(flightNumber));
+            refreshAirlineFlightsList();
+            refreshFlightsList();
+            JOptionPane.showMessageDialog(this, "Flight created successfully.");
+        } catch (DateTimeParseException ex) {
+            JOptionPane.showMessageDialog(this,
+                    "Use format yyyy-MM-dd HH:mm:ss (example: " + LocalDateTime.now().format(INPUT_FORMAT) + ").");
+        }
+    }
+
+    private void guiAddTicketToSpecificFlight(int flightIndex) {
+        if (flightIndex < 0 || flightIndex >= flights.size()) {
+            JOptionPane.showMessageDialog(this, "Select a flight first.");
+            return;
+        }
+
+        Flight flight = flights.get(flightIndex);
+        String[] types = { "Economy", "Basic Economy", "First Class" };
+        String type = (String) JOptionPane.showInputDialog(this, "Choose ticket type:", "Ticket Type",
+                JOptionPane.QUESTION_MESSAGE, null, types, types[0]);
+        if (type == null)
+            return;
+
+        String passenger = JOptionPane.showInputDialog(this, "Passenger name:");
+        if (passenger == null || passenger.trim().isEmpty())
+            return;
+
+        String seat = JOptionPane.showInputDialog(this, "Seat number:");
+        if (seat == null || seat.trim().isEmpty())
+            return;
+
+        Ticket ticket;
+        if (type.equals(types[0])) {
+            boolean mealIncluded = JOptionPane.showConfirmDialog(this, "Meal included?", "Meal",
+                    JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION;
+            ticket = new EconomyTicket(passenger.trim(), seat.trim(), mealIncluded);
+        } else if (type.equals(types[1])) {
+            boolean mealIncluded = JOptionPane.showConfirmDialog(this, "Meal included?", "Meal",
+                    JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION;
+            boolean allowedCarryOn = JOptionPane.showConfirmDialog(this, "Carry-on allowed?", "Carry-on",
+                    JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION;
+            ticket = new BasicEconomyTicket(passenger.trim(), seat.trim(), mealIncluded, allowedCarryOn);
         } else {
-            for (int i = 0; i < airlines.size(); i++)
-                System.out.println((i + 2) + ") " + airlines.get(i).getName());
+            boolean spa = JOptionPane.showConfirmDialog(this, "Spa access included?", "Spa",
+                    JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION;
+            ticket = new FirstClassTicket(passenger.trim(), seat.trim(), spa);
         }
 
-        System.out.println("0) Back to Main Menu"
-                + "\n--------------------------------------------");
+        if (JOptionPane.showConfirmDialog(this, "Add lounge pass?", "Lounge",
+                JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
+            String[] levels = { "1", "2" };
+            String level = (String) JOptionPane.showInputDialog(this, "Choose lounge level:", "Lounge Pass",
+                    JOptionPane.QUESTION_MESSAGE, null, levels, levels[0]);
+            if (level != null) {
+                ticket.setLoungePass(new LoungePass(Integer.parseInt(level)));
+            }
+        }
+
+        if (!flight.addTicket(ticket)) {
+            JOptionPane.showMessageDialog(this, "Could not add ticket.");
+            return;
+        }
+
+        JOptionPane.showMessageDialog(this, "Ticket added successfully. Ticket ID: " + ticket.getTicketId(), "Success",
+                JOptionPane.INFORMATION_MESSAGE);
     }
 
-    static void displayAirlineMenu(int airlineIndex) {
-        clearScreen();
+    private void guiRefundTicketFromSpecificFlight(int flightIndex) {
+        if (flightIndex < 0 || flightIndex >= flights.size()) {
+            JOptionPane.showMessageDialog(this, "Select a flight first.");
+            return;
+        }
 
-        Airline airline = airlines.get(airlineIndex);
-        System.out.println(
-                repeat("-", 18 - (airline.getName().length() / 2)) + " " + airline.getName() + " Menu "
-                        + repeat("-",
-                                (18 - (airline.getName().length() / 2)) + (airline.getName().length() % 2 == 0 ? 1 : 0))
-                        + "\n1) Show Airline Details"
-                        + "\n2) Add Flight to this Airline"
-                        + "\n3) Remove this Airline");
+        String[] ticketIds = new String[flights.get(flightIndex).getTicketCount()];
+        for (int i = 0; i < flights.get(flightIndex).getTicketCount(); i++)
+            ticketIds[i] = flights.get(flightIndex).getTicketAt(i).getTicketId();
 
-        int flightCount = 0;
-        int indexOffset = 4; // Start flight options from 4
+        String ticketId = (String) JOptionPane.showInputDialog(this, "Select ticket to refund:", "Refund Ticket",
+                JOptionPane.QUESTION_MESSAGE, null, ticketIds, ticketIds[0]);
+        if (ticketId == null || ticketId.trim().isEmpty())
+            return;
+
+        if (!flights.get(flightIndex).refundTicket(ticketId.trim())) {
+            JOptionPane.showMessageDialog(this, "Ticket not found.");
+            return;
+        }
+
+        JOptionPane.showMessageDialog(this, "Ticket refunded successfully.", "Success",
+                JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    private void guiDepartFlight() {
+        if (currentFlightIndex < 0 || currentFlightIndex >= flights.size()) {
+            JOptionPane.showMessageDialog(this, "Select a flight first.");
+            return;
+        }
+
+        while (true) {
+            String value = JOptionPane.showInputDialog(this, "Actual departure (yyyy-MM-dd HH:mm:ss):", LocalDateTime.now().format(INPUT_FORMAT_ZERO_MINUTES_SECONDS));
+            if (value == null || value.trim().isEmpty())
+                return;
+
+            try {
+                flights.get(currentFlightIndex).depart(LocalDateTime.parse(value.trim(), INPUT_FORMAT));
+                JOptionPane.showMessageDialog(this, "Flight departure status updated.", "Success",
+                        JOptionPane.INFORMATION_MESSAGE);
+                refreshFlightTicketsList();
+                refreshTicketFlightDetailsList();
+            } catch (DateTimeParseException ex) {
+                JOptionPane.showMessageDialog(this,
+                        "Use format yyyy-MM-dd HH:mm:ss (example: " + LocalDateTime.now().format(INPUT_FORMAT) + ").",
+                        "Invalid Date Format", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+
+    private void guiLandFlight() {
+        if (currentFlightIndex < 0 || currentFlightIndex >= flights.size()) {
+            JOptionPane.showMessageDialog(this, "Select a flight first.");
+            return;
+        }
+
+        while (true) {
+            String value = JOptionPane.showInputDialog(this, "Actual landing (yyyy-MM-dd HH:mm:ss):", LocalDateTime.now().plusHours(2).format(INPUT_FORMAT_ZERO_MINUTES_SECONDS));
+            if (value == null || value.trim().isEmpty())
+                return;
+            try {
+                flights.get(currentFlightIndex).land(LocalDateTime.parse(value.trim(), INPUT_FORMAT));
+                JOptionPane.showMessageDialog(this, "Flight landing status updated.", "Success",
+                        JOptionPane.INFORMATION_MESSAGE);
+                refreshFlightTicketsList();
+                refreshTicketFlightDetailsList();
+                return;
+            } catch (DateTimeParseException ex) {
+                JOptionPane.showMessageDialog(this,
+                        "Use format yyyy-MM-dd HH:mm:ss (example: " + LocalDateTime.now().format(INPUT_FORMAT) + ").",
+                        "Invalid Date Format", JOptionPane.ERROR_MESSAGE);
+            }
+
+        }
+    }
+
+    private void guiCreateAirline() {
+        String name = JOptionPane.showInputDialog(this, "Airline name:");
+        if (name == null || name.trim().isEmpty())
+            return;
+        String max = JOptionPane.showInputDialog(this, "Maximum number of flights:");
+        if (max == null || max.trim().isEmpty())
+            return;
+        try {
+            int m = Integer.parseInt(max.trim());
+            if (findAirlineIndex(name) != -1) {
+                JOptionPane.showMessageDialog(this, "Airline already exists.");
+                return;
+            }
+            airlines.insertAtBack(new Airline(name, m));
+            JOptionPane.showMessageDialog(this, "Airline created.", "Success", JOptionPane.INFORMATION_MESSAGE);
+        } catch (NumberFormatException ex) {
+            JOptionPane.showMessageDialog(this, "Invalid number.", "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private JPanel buildAirlinesPanel() {
+        JPanel panel = new JPanel(null);
+        panel.setBackground(new Color(220, 240, 255));
+
+        JLabel title = new JLabel("Airlines");
+        title.setFont(new Font("Tahoma", Font.BOLD, 24));
+        title.setBounds(420, 20, 200, 40);
+        panel.add(title);
+
+        airlinesListModel = new DefaultListModel<>();
+        airlinesJList = new JList<>(airlinesListModel);
+        airlinesJList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        JScrollPane scroll = new JScrollPane(airlinesJList);
+        scroll.setBounds(80, 90, 400, 350);
+        panel.add(scroll);
+
+        JButton createBtn = new JButton("Create Airline");
+        createBtn.setBounds(520, 120, 300, 60);
+        panel.add(createBtn);
+
+        JButton openBtn = new JButton("Open Airline");
+        openBtn.setBounds(520, 200, 300, 60);
+        panel.add(openBtn);
+
+        JButton backBtn = new JButton("Back");
+        backBtn.setBounds(520, 380, 300, 60);
+        panel.add(backBtn);
+
+        createBtn.addActionListener(e -> {
+            guiCreateAirline();
+            refreshAirlinesList();
+        });
+        openBtn.addActionListener(e -> {
+            int sel = airlinesJList.getSelectedIndex();
+            if (sel == -1) {
+                JOptionPane.showMessageDialog(this, "Select an airline first.");
+                return;
+            }
+            currentAirlineIndex = sel;
+            refreshAirlineFlightsList();
+            cardLayout.show(contentPane, "airlineDetail");
+        });
+        backBtn.addActionListener(e -> cardLayout.show(contentPane, "main"));
+
+        return panel;
+    }
+
+    private JPanel buildAirlineDetailPanel() {
+        JPanel panel = new JPanel(null);
+        panel.setBackground(new Color(230, 245, 255));
+
+        JLabel title = new JLabel("Airline");
+        title.setFont(new Font("Tahoma", Font.BOLD, 24));
+        title.setBounds(420, 10, 300, 40);
+        panel.add(title);
+
+        airlineFlightsListModel = new DefaultListModel<>();
+        airlineFlightsJList = new JList<>(airlineFlightsListModel);
+        JScrollPane scroll = new JScrollPane(airlineFlightsJList);
+        scroll.setBounds(80, 90, 400, 350);
+        panel.add(scroll);
+
+        JButton detailsBtn = new JButton("Show Airline Details");
+        detailsBtn.setBounds(520, 90, 300, 50);
+        panel.add(detailsBtn);
+
+        JButton addFlightBtn = new JButton("Add Flight to this Airline");
+        addFlightBtn.setBounds(520, 160, 300, 50);
+        panel.add(addFlightBtn);
+
+        JButton openFlightBtn = new JButton("Open Flight");
+        openFlightBtn.setBounds(520, 230, 300, 50);
+        panel.add(openFlightBtn);
+
+        JButton removeBtn = new JButton("Remove this Airline");
+        removeBtn.setBounds(520, 300, 300, 50);
+        panel.add(removeBtn);
+
+        JButton backBtn = new JButton("Back");
+        backBtn.setBounds(520, 380, 300, 50);
+        panel.add(backBtn);
+
+        detailsBtn.addActionListener(e -> {
+            if (currentAirlineIndex < 0)
+                return;
+            JOptionPane.showMessageDialog(this, airlines.get(currentAirlineIndex).toString(), "Airline Details",
+                    JOptionPane.INFORMATION_MESSAGE);
+        });
+        addFlightBtn.addActionListener(e -> {
+            guiCreateFlightForAirline(currentAirlineIndex);
+            refreshAirlineFlightsList();
+            refreshFlightsList();
+        });
+        openFlightBtn.addActionListener(e -> {
+            int sel = airlineFlightsJList.getSelectedIndex();
+            if (sel == -1) {
+                JOptionPane.showMessageDialog(this, "Select a flight first.");
+                return;
+            }
+            // find global flight index
+            Flight f = airlines.get(currentAirlineIndex).getFlight(sel);
+            currentFlightIndex = findGlobalFlightIndex(f);
+            flightReturnCard = "airlineDetail";
+            refreshFlightTicketsList();
+            cardLayout.show(contentPane, "flightDetail");
+        });
+        removeBtn.addActionListener(e -> {
+            if (currentAirlineIndex < 0)
+                return;
+            int r = JOptionPane.showConfirmDialog(this, "Remove airline and its flights?", "Confirm",
+                    JOptionPane.YES_NO_OPTION);
+            if (r == JOptionPane.YES_OPTION) {
+                removeAirline(currentAirlineIndex);
+                currentAirlineIndex = -1;
+                refreshAirlinesList();
+                refreshFlightsList();
+                cardLayout.show(contentPane, "airlines");
+            }
+        });
+        backBtn.addActionListener(e -> cardLayout.show(contentPane, "airlines"));
+
+        return panel;
+    }
+
+    private JPanel buildFlightsPanel() {
+        JPanel panel = new JPanel(null);
+        panel.setBackground(new Color(220, 240, 255));
+
+        JLabel title = new JLabel("Flights");
+        title.setFont(new Font("Tahoma", Font.BOLD, 24));
+        title.setBounds(420, 20, 200, 40);
+        panel.add(title);
+
+        flightsListModel = new DefaultListModel<>();
+        flightsJList = new JList<>(flightsListModel);
+        flightsJList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        JScrollPane scroll = new JScrollPane(flightsJList);
+        scroll.setBounds(80, 90, 400, 350);
+        panel.add(scroll);
+
+        JButton createBtn = new JButton("Create Flight");
+        createBtn.setBounds(520, 120, 300, 60);
+        panel.add(createBtn);
+
+        JButton openBtn = new JButton("Open Flight");
+        openBtn.setBounds(520, 200, 300, 60);
+        panel.add(openBtn);
+
+        JButton backBtn = new JButton("Back");
+        backBtn.setBounds(520, 380, 300, 60);
+        panel.add(backBtn);
+
+        createBtn.addActionListener(e -> {
+            guiCreateFlight();
+            refreshFlightsList();
+            refreshAirlinesList();
+        });
+        openBtn.addActionListener(e -> {
+            int sel = flightsJList.getSelectedIndex();
+            if (sel == -1) {
+                JOptionPane.showMessageDialog(this, "Select a flight first.");
+                return;
+            }
+            currentFlightIndex = sel;
+            flightReturnCard = "flights";
+            refreshFlightTicketsList();
+            cardLayout.show(contentPane, "flightDetail");
+        });
+        backBtn.addActionListener(e -> cardLayout.show(contentPane, "main"));
+
+        return panel;
+    }
+
+    private JPanel buildFlightDetailPanel() {
+        JPanel panel = new JPanel(null);
+        panel.setBackground(new Color(230, 245, 255));
+
+        JLabel title = new JLabel("Flight");
+        title.setFont(new Font("Tahoma", Font.BOLD, 24));
+        title.setBounds(420, 10, 300, 40);
+        panel.add(title);
+
+        flightTicketsListModel = new DefaultListModel<>();
+        flightTicketsJList = new JList<>(flightTicketsListModel);
+        JScrollPane scroll = new JScrollPane(flightTicketsJList);
+        scroll.setBounds(80, 90, 400, 350);
+        panel.add(scroll);
+
+        JButton detailsBtn = new JButton("Show Flight Details");
+        detailsBtn.setBounds(520, 90, 300, 50);
+        panel.add(detailsBtn);
+        
+        JButton addTicketBtn = new JButton("Add Ticket to this Flight");
+        addTicketBtn.setBounds(520, 160, 300, 50);
+        panel.add(addTicketBtn);
+
+        JButton departBtn = new JButton("Depart Flight");
+        departBtn.setBounds(520, 230, 300, 50);
+        panel.add(departBtn);
+
+        JButton landBtn = new JButton("Land Flight");
+        landBtn.setBounds(520, 300, 300, 50);
+        panel.add(landBtn);
+
+        JButton backBtn = new JButton("Back");
+        backBtn.setBounds(520, 380, 300, 50);
+        panel.add(backBtn);
+
+        addTicketBtn.addActionListener(e -> {
+            guiAddTicketToSpecificFlight(currentFlightIndex);
+            refreshFlightTicketsList();
+        });
+        detailsBtn.addActionListener(e -> {
+            JOptionPane.showMessageDialog(this, flights.get(currentFlightIndex).toString(), "Flight Details",
+                    JOptionPane.INFORMATION_MESSAGE);
+        });
+        departBtn.addActionListener(e -> {
+            guiDepartFlight();
+            refreshFlightsList();
+        });
+        landBtn.addActionListener(e -> {
+            guiLandFlight();
+            refreshFlightsList();
+        });
+        backBtn.addActionListener(e -> cardLayout.show(contentPane, flightReturnCard));
+
+        return panel;
+    }
+
+    private JPanel buildTicketsPanel() {
+        JPanel panel = new JPanel(null);
+        panel.setBackground(new Color(220, 240, 255));
+
+        JLabel title = new JLabel("Tickets");
+        title.setFont(new Font("Tahoma", Font.BOLD, 24));
+        title.setBounds(420, 20, 200, 40);
+        panel.add(title);
+
+        ticketFlightsListModel = new DefaultListModel<>();
+        ticketFlightsJList = new JList<>(ticketFlightsListModel);
+        ticketFlightsJList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        JScrollPane scroll = new JScrollPane(ticketFlightsJList);
+        scroll.setBounds(80, 90, 400, 350);
+        panel.add(scroll);
+
+        JButton openBtn = new JButton("Open Flight Tickets");
+        openBtn.setBounds(520, 120, 300, 60);
+        panel.add(openBtn);
+
+        JButton showBtn = new JButton("Show Flight Details");
+        showBtn.setBounds(520, 200, 300, 60);
+        panel.add(showBtn);
+
+        JButton backBtn = new JButton("Back");
+        backBtn.setBounds(520, 380, 300, 60);
+        panel.add(backBtn);
+
+        refreshTicketsFlightsList();
+
+        openBtn.addActionListener(e -> {
+            int sel = ticketFlightsJList.getSelectedIndex();
+            if (sel == -1) {
+                JOptionPane.showMessageDialog(this, "Select a flight first.");
+                return;
+            }
+            currentTicketFlightIndex = sel;
+            refreshTicketFlightDetailsList();
+            cardLayout.show(contentPane, "ticketDetail");
+        });
+        showBtn.addActionListener(e -> {
+            int sel = ticketFlightsJList.getSelectedIndex();
+            if (sel == -1) {
+                JOptionPane.showMessageDialog(this, "Select a flight first.");
+                return;
+            }
+            JOptionPane.showMessageDialog(this, flights.get(sel).toString(), "Flight Details",
+                    JOptionPane.INFORMATION_MESSAGE);
+        });
+        backBtn.addActionListener(e -> cardLayout.show(contentPane, "main"));
+
+        return panel;
+    }
+
+    private JPanel buildTicketDetailPanel() {
+        JPanel panel = new JPanel(null);
+        panel.setBackground(new Color(230, 245, 255));
+
+        JLabel title = new JLabel("Ticket Flight");
+        title.setFont(new Font("Tahoma", Font.BOLD, 24));
+        title.setBounds(400, 10, 300, 40);
+        panel.add(title);
+
+        ticketFlightDetailsListModel = new DefaultListModel<>();
+        ticketFlightDetailsJList = new JList<>(ticketFlightDetailsListModel);
+        JScrollPane scroll = new JScrollPane(ticketFlightDetailsJList);
+        scroll.setBounds(80, 90, 400, 350);
+        panel.add(scroll);
+
+        JButton addTicketBtn = new JButton("Add Ticket");
+        addTicketBtn.setBounds(520, 90, 300, 50);
+        panel.add(addTicketBtn);
+
+        JButton refundBtn = new JButton("Refund Ticket");
+        refundBtn.setBounds(520, 160, 300, 50);
+        panel.add(refundBtn);
+
+        JButton detailsBtn = new JButton("Show Flight Details");
+        detailsBtn.setBounds(520, 230, 300, 50);
+        panel.add(detailsBtn);
+
+        JButton backBtn = new JButton("Back");
+        backBtn.setBounds(520, 380, 300, 50);
+        panel.add(backBtn);
+
+        refreshTicketFlightDetailsList();
+
+        addTicketBtn.addActionListener(e -> {
+            guiAddTicketToSpecificFlight(currentTicketFlightIndex);
+            refreshTicketFlightDetailsList();
+        });
+        refundBtn.addActionListener(e -> {
+            guiRefundTicketFromSpecificFlight(currentTicketFlightIndex);
+            refreshTicketFlightDetailsList();
+        });
+        detailsBtn.addActionListener(e -> {
+            if (currentTicketFlightIndex < 0)
+                return;
+            JOptionPane.showMessageDialog(this, flights.get(currentTicketFlightIndex).toString(), "Flight Details",
+                    JOptionPane.INFORMATION_MESSAGE);
+        });
+        backBtn.addActionListener(e -> cardLayout.show(contentPane, "tickets"));
+
+        return panel;
+    }
+
+    private void refreshAirlinesList() {
+        if (airlinesListModel == null)
+            return;
+        airlinesListModel.clear();
+        for (int i = 0; i < airlines.size(); i++)
+            airlinesListModel.addElement(airlines.get(i).getName());
+    }
+
+    private void refreshAirlineFlightsList() {
+        if (airlineFlightsListModel == null)
+            return;
+        airlineFlightsListModel.clear();
+        if (currentAirlineIndex < 0)
+            return;
+        Airline a = airlines.get(currentAirlineIndex);
+        for (int i = 0; i < a.getFlightCount(); i++)
+            airlineFlightsListModel.addElement(a.getFlight(i).getFlightNumber());
+    }
+
+    private void refreshFlightsList() {
+        if (flightsListModel == null)
+            return;
+        flightsListModel.clear();
+        for (int i = 0; i < flights.size(); i++)
+            flightsListModel
+                    .addElement(flights.get(i).getFlightNumber() + " (" + flights.get(i).getAirline().getName() + ")");
+    }
+
+    private void refreshFlightTicketsList() {
+        if (flightTicketsListModel == null)
+            return;
+        flightTicketsListModel.clear();
+        if (currentFlightIndex < 0)
+            return;
+        Flight f = flights.get(currentFlightIndex);
+
+        for (int i = 0; i < f.getTicketCount(); i++)
+            flightTicketsListModel
+                    .addElement(f.getTicketAt(i).getTicketId() + " - " + f.getTicketAt(i).getPassengerName());
+    }
+
+    private void refreshTicketsFlightsList() {
+        if (ticketFlightsListModel == null)
+            return;
+        ticketFlightsListModel.clear();
         for (int i = 0; i < flights.size(); i++) {
-            Flight currentFlight = flights.get(i);
-            if (currentFlight.getAirline() == airline) {
-                System.out.println((indexOffset++) + ") Manage " + currentFlight.getFlightNumber() + " Flight");
-                flightCount++;
-            }
-        }
-        if (flightCount == 0) {
-            System.out.println("No flights for this airline. Add one to see more options.");
-        }
-
-        System.out.println("0) Back to Airlines Menu"
-                + "\n--------------------------------------------");
-    }
-
-    static void handleAirlineMenu() {
-
-        boolean repeat = true;
-        while (repeat) {
-            displayAirlineMenu();
-
-            int choice = readInt("Choose an option: ", 0, airlines.size() + 1);
-            switch (choice) {
-                case 1:
-                    createAirline();
-                    break;
-                case 0:
-                    repeat = false;
-                    break;
-                default: {
-                    int airlineIndex = choice - 2;
-                    if (airlineIndex >= 0 && airlineIndex < airlines.size()) {
-                        handleAirlineMenu(airlineIndex);
-                    } else {
-                        printlnError("Invalid option. Please choose between 0 and " + (airlines.size() + 1) + ".");
-                    }
-                    break;
-                }
-            }
+            ticketFlightsListModel
+                    .addElement(flights.get(i).getFlightNumber() + " (" + flights.get(i).getAirline().getName() + ")");
         }
     }
 
-    static void handleAirlineMenu(int airlineIndex) {
-        Airline airline = airlines.get(airlineIndex);
+    private void refreshTicketFlightDetailsList() {
+        if (ticketFlightDetailsListModel == null)
+            return;
+        ticketFlightDetailsListModel.clear();
+        if (currentTicketFlightIndex < 0 || currentTicketFlightIndex >= flights.size())
+            return;
 
-        boolean repeat = true;
-        while (repeat) {
-            displayAirlineMenu(airlineIndex);
+        Flight f = flights.get(currentTicketFlightIndex);
 
-            int choice = readInt("Choose an option: ", 0, flights.size() + 3);
-            switch (choice) {
-                case 0:
-                    repeat = false;
-                    break;
-                case 1:
-                    printlnBox(airline.toString());
-                    System.out.print("\nPress Enter to continue... ");
-                    input.nextLine();
-                    break;
-                case 2:
-                    createFlight(airlineIndex);
-                    break;
-                case 3:
-                    removeAirline(airlineIndex);
-                    repeat = false; // After removing, go back to main airlines menu
-                    break;
-                default: {
-                    int flightOptionIndex = choice - 4;
-                    int flightCount = 0;
-                    for (int i = 0; i < flights.size(); i++) {
-                        if (flights.get(i).getAirline() == airline) {
-                            if (flightCount == flightOptionIndex) {
-                                handleFlightMenu(i, airline.getName());
-                                break;
-                            }
-                            flightCount++;
-                        }
-                    }
-
-                    if (flightOptionIndex < 0 || flightOptionIndex > flightCount) {
-                        printlnError("Invalid option. Please choose between 0 and " + (flights.size() + 3) + ".");
-                    }
-                    break;
-                }
-            }
-        }
+        for (int i = 0; i < f.getTicketCount(); i++)
+            ticketFlightDetailsListModel
+                    .addElement(f.getTicketAt(i).getTicketId() + " - " + f.getTicketAt(i).getPassengerName());
     }
 
-    static void displayFlightMenu() {
-        clearScreen();
-
-        System.out.println(
-                "--------------- Flights Menu ---------------"
-                        + "\n1) Create Flight");
-
-        if (flights.size() == 0) {
-            System.out.println("No flights available. Create one to see more options.");
-        } else {
-            for (int i = 0; i < flights.size(); i++)
-                System.out.println(
-                        (i + 2) + ") " + flights.get(i).getFlightNumber() + " (" + flights.get(i).getAirline().getName()
-                                + ")");
-        }
-
-        System.out.println("0) Back to Main Menu"
-                + "\n--------------------------------------------");
+    private int findGlobalFlightIndex(Flight f) {
+        for (int i = 0; i < flights.size(); i++)
+            if (flights.get(i) == f)
+                return i;
+        return -1;
     }
 
-    static void displayFlightMenu(int flightIndex) {
-        clearScreen();
-
-        Flight flight = flights.get(flightIndex);
-        System.out.println(
-                repeat("-", 18 - (flight.getFlightNumber().length() / 2))
-                        + " " + flight.getFlightNumber() + " Menu " + repeat("-",
-                                (18 - (flight.getFlightNumber().length() / 2))
-                                        + (flight.getFlightNumber().length() % 2 == 0 ? 1 : 0))
-                        + "\n1) Show Flight Details"
-                        + "\n2) Add Ticket to this Flight"
-                        + "\n3) Refund Ticket from this Flight"
-                        + "\n4) Depart Flight"
-                        + "\n5) Land Flight"
-                        + "\n0) Back to Flights Menu"
-                        + "\n--------------------------------------------");
-    }
-
-    static void displayFlightMenu(int flightIndex, String airlineName) {
-        clearScreen();
-
-        Flight flight = flights.get(flightIndex);
-        System.out.println(
-                repeat("-", 16 - (airlineName.length() / 2) - (flight.getFlightNumber().length() / 2)) + " "
-                        + airlineName + " - " + flight.getFlightNumber() + " Menu "
-                        + repeat("-",
-                                (16 - (airlineName.length() / 2) - (flight.getFlightNumber().length() / 2))
-                                        + (airlineName.length() % 2 == 0 ? 1 : 0))
-                        + "\n1) Show Flight Details"
-                        + "\n2) Add Ticket to this Flight"
-                        + "\n3) Refund Ticket from this Flight"
-                        + "\n4) Depart Flight"
-                        + "\n5) Land Flight"
-                        + "\n6) Remove this Flight"
-                        + "\n0) Back to " + airlineName + " Flights Menu"
-                        + "\n--------------------------------------------");
-    }
-
-    static void handleFlightMenu() {
-        if (airlines.size() == 0) {
-            printlnError("No airlines available. Create an airline first.");
+    private void guiCreateFlight() {
+        if (flights.size() == MAX_FLIGHTS) {
+            JOptionPane.showMessageDialog(this, "Cannot create more flights. Capacity reached.");
             return;
         }
 
-        boolean repeat = true;
-        while (repeat) {
-            displayFlightMenu();
+        Airline a = chooseAirline();
+        if (a == null)
+            return;
 
-            int choice = readInt("Choose an option: ", 0, flights.size() + 1);
-            switch (choice) {
-                case 1:
-                    createFlight();
-                    break;
-                case 0:
-                    repeat = false;
-                    break;
-                default: {
-                    int flightIndex = choice - 2;
-                    if (flightIndex >= 0 && flightIndex < flights.size()) {
-                        handleFlightMenu(flightIndex);
-                    } else {
-                        printlnError("Invalid option. Please choose between 0 and " + (flights.size() + 1) + ".");
-                    }
-                    break;
-                }
-            }
-        }
-    }
+        JTextField flightNumberField = new JTextField();
+        JTextField originField = new JTextField();
+        JTextField destinationField = new JTextField();
+        JTextField departureField = new JTextField(LocalDateTime.now().format(INPUT_FORMAT_ZERO_MINUTES_SECONDS));
+        JTextField arrivalField = new JTextField(
+                LocalDateTime.now().plusHours(2).format(INPUT_FORMAT_ZERO_MINUTES_SECONDS));
 
-    static void handleFlightMenu(int flightIndex) {
-        Flight flight = flights.get(flightIndex);
+        Object[] fields = {
+                "Flight number:", flightNumberField,
+                "Origin:", originField,
+                "Destination:", destinationField,
+                "Planned departure: (yyyy-MM-dd HH:mm:ss)", departureField,
+                "Planned arrival: (yyyy-MM-dd HH:mm:ss)", arrivalField
+        };
 
-        boolean repeat = true;
-        while (repeat) {
-            displayFlightMenu(flightIndex);
+        int result = JOptionPane.showConfirmDialog(this, fields, "Create Flight", JOptionPane.OK_CANCEL_OPTION);
+        if (result != JOptionPane.OK_OPTION)
+            return;
 
-            int choice = readInt("Choose an option: ", 0, 6);
-            switch (choice) {
-                case 1:
-                    printlnBox(flight.toString());
-                    System.out.print("\nPress Enter to continue... ");
-                    input.nextLine();
-                    break;
-                case 2:
-                    addTicketToFlight(flightIndex);
-                    break;
-                case 3:
-                    refundTicketFromFlight(flightIndex);
-                    break;
-                case 4:
-                    departFlight(flightIndex);
-                    break;
-                case 5:
-                    landFlight(flightIndex);
-                    break;
-                case 6:
-                    removeFlight(flightIndex, true);
-                    repeat = false; // After removing, go back to airline's flight menu
-                    break;
-                case 0:
-                    repeat = false;
-                    break;
-                default:
-                    printlnError("Invalid option. Please choose between 0 and 6.");
-                    break;
-            }
-        }
-    }
-
-    static void handleFlightMenu(int flightIndex, String airlineName) {
-        Flight flight = flights.get(flightIndex);
-
-        boolean repeat = true;
-        while (repeat) {
-            displayFlightMenu(flightIndex, airlineName);
-
-            int choice = readInt("Choose an option: ", 0, 6);
-            switch (choice) {
-                case 1:
-                    printlnBox(flight.toString());
-                    System.out.print("\nPress Enter to continue... ");
-                    input.nextLine();
-                    break;
-                case 2:
-                    addTicketToFlight(flightIndex);
-                    break;
-                case 3:
-                    refundTicketFromFlight(flightIndex);
-                    break;
-                case 4:
-                    departFlight(flightIndex);
-                    break;
-                case 5:
-                    landFlight(flightIndex);
-                    break;
-                case 6:
-                    removeFlight(flightIndex, true);
-                    repeat = false; // After removing, go back to airline's flight menu
-                    break;
-                case 0:
-                    repeat = false;
-                    break;
-                default:
-                    printlnError("Invalid option. Please choose between 0 and 6.");
-                    break;
-            }
-        }
-    }
-
-    static void displayTicketMenu() {
-        clearScreen();
-
-        System.out.print("Select a flight to manage tickets for:\n");
-        for (int i = 0; i < flights.size(); i++) {
-            System.out.println(
-                    (i + 1) + ") " + flights.get(i).getFlightNumber() + " (" + flights.get(i).getAirline().getName()
-                            + ")");
-        }
-
-        System.out.println("0) Back to Main Menu"
-                + "\n--------------------------------------------");
-
-    }
-
-    static void displayTicketMenu(int flightIndex) {
-        clearScreen();
-
-        Flight flight = flights.get(flightIndex);
-        System.out.println(
-                "---------------- " + flight.getFlightNumber() + " Tickets Menu -----------------"
-                        + "\n1) Show All Tickets"
-                        + "\n2) Add Ticket to this Flight"
-                        + "\n3) Refund Ticket from this Flight"
-                        + "\n0) Back to Flights Menu"
-                        + "\n--------------------------------------------");
-    }
-
-    static void handleTicketMenu() {
-        if (flights.size() == 0) {
-            printlnError("No flights available. Create a flight first.");
+        String flightNumber = flightNumberField.getText().trim();
+        String origin = originField.getText().trim();
+        String destination = destinationField.getText().trim();
+        if (flightNumber.isEmpty() || origin.isEmpty() || destination.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Fill all fields.");
             return;
         }
 
-        boolean repeat = true;
-        while (repeat) {
-            displayTicketMenu();
-
-            int choice = readInt("Choose a flight: ", 0, flights.size());
-            switch (choice) {
-                case 0:
-                    repeat = false;
-                    break;
-                default: {
-                    int flightIndex = choice - 1;
-                    if (flightIndex >= 0 && flightIndex < flights.size()) {
-                        handleTicketMenu(flightIndex);
-                    } else {
-                        printlnError("Invalid option. Please choose between 0 and " + flights.size() + ".");
-                    }
-                    break;
-                }
-            }
-        }
-    }
-
-    static void handleTicketMenu(int flightIndex) {
-        Flight flight = flights.get(flightIndex);
-
-        boolean repeat = true;
-        while (repeat) {
-            displayTicketMenu(flightIndex);
-
-            int choice = readInt("Choose an option: ", 0, 3);
-            switch (choice) {
-                case 1:
-                    printlnBox(flight.toString());
-                    System.out.print("\nPress Enter to continue... ");
-                    input.nextLine();
-                    break;
-                case 2:
-                    addTicketToFlight(flightIndex);
-                    break;
-                case 3:
-                    refundTicketFromFlight(flightIndex);
-                    break;
-                case 0:
-                    repeat = false;
-                    break;
-                default:
-                    printlnError("Invalid option. Please choose between 0 and 3.");
-                    break;
-            }
-        }
-    }
-
-    static void createAirline() {
-        if (airlines.size() == MAX_AIRLINES) {
-            printlnError("Cannot create more airlines. Capacity reached.");
+        if (a.searchFlight(flightNumber) != -1) {
+            JOptionPane.showMessageDialog(this, "Flight already exists.");
             return;
         }
 
-        String name = readNonEmpty("Airline name: ");
-        if (findAirlineIndex(name) != -1) {
-            printlnError("Airline already exists.");
-            return;
+        try {
+            LocalDateTime departure = LocalDateTime.parse(departureField.getText().trim(), INPUT_FORMAT);
+            LocalDateTime arrival = LocalDateTime.parse(arrivalField.getText().trim(), INPUT_FORMAT);
+            Flight flight = new Flight(flightNumber, origin, destination, departure, arrival);
+            if (a.addFlight(flight)) {
+                JOptionPane.showMessageDialog(this, "Could not add flight to airline.");
+                return;
+            }
+            flights.insertAtBack(a.getFlight(flightNumber));
+            refreshAirlineFlightsList();
+            refreshFlightsList();
+            JOptionPane.showMessageDialog(this, "Flight created successfully.");
+        } catch (DateTimeParseException ex) {
+            JOptionPane.showMessageDialog(this,
+                    "Use format yyyy-MM-dd HH:mm:ss (example: " + LocalDateTime.now().format(INPUT_FORMAT) + ").");
         }
-
-        int maxFlights = readInt("Maximum number of flights for this airline: ", 1, Integer.MAX_VALUE);
-
-        airlines.insertAtBack(new Airline(name, maxFlights));
-        saveState();
-        printlnSuccess("Airline created successfully.");
     }
 
     static void removeAirline(int airlineIndex) {
@@ -490,164 +888,18 @@ public class AirportTest {
         Airline airline = airlines.get(airlineIndex);
         for (int i = 0; i < flights.size(); i++) {
             if (flights.get(i).getAirline() == airline) {
-                removeFlight(i, false);
+                removeFlight(i);
                 i--; // Adjust index after removal
             }
         }
 
         airlines.remove(airlineIndex);
-
-        saveState();
-        printlnSuccess("Airline removed successfully.");
     }
 
-    static void createFlight() {
-        if (flights.size() == MAX_FLIGHTS) {
-            printlnError("Cannot create more flights. Capacity reached.");
-            return;
-        }
-
-        System.out.println("Select an airline for this flight:");
-        for (int i = 0; i < airlines.size(); i++)
-            System.out.println((i + 1) + ") " + airlines.get(i).getName());
-
-        System.out.println("0) Back to previous menu");
-
-        int airlineChoice = readInt("Choose an airline: ", 0, airlines.size());
-        if (airlineChoice == 0) {
-            return; // Go back to previous menu
-        }
-        int airlineIndex = airlineChoice - 1;
-
-        String flightNumber = readNonEmpty("Flight number: ");
-        if (airlines.get(airlineIndex).searchFlight(flightNumber) != -1) {
-            printlnError("Flight number already exists.");
-            return;
-        }
-
-        String origin = readNonEmpty("Origin: ");
-        String destination = readNonEmpty("Destination: ");
-        LocalDateTime departure = readDateTime("Planned departure (yyyy-MM-dd HH:mm:ss): ");
-        LocalDateTime arrival = readDateTime("Planned arrival (yyyy-MM-dd HH:mm:ss): ");
-
-        Flight flight = new Flight(flightNumber, origin, destination, departure, arrival);
-        boolean added = airlines.get(airlineIndex).addFlight(flight);
-        if (!added) {
-            printlnError("Could not add flight to airline (duplicate or airline capacity reached).");
-            return;
-        }
-
-        flights.insertAtBack(airlines.get(airlineIndex).getFlight(flightNumber)); // Get the actual flight object from the
-                                                                         // airline
-        saveState();
-        printlnSuccess("Flight created and assigned successfully.");
-    }
-
-    static void createFlight(int airlineIndex) {
-        if (flights.size() == MAX_FLIGHTS) {
-            printlnError("Cannot create more flights. Capacity reached.");
-            return;
-        }
-
-        String flightNumber = readNonEmpty("Flight number: ");
-        if (airlines.get(airlineIndex).searchFlight(flightNumber) != -1) {
-            printlnError("Flight number already exists.");
-            return;
-        }
-
-        String origin = readNonEmpty("Origin: ");
-        String destination = readNonEmpty("Destination: ");
-        LocalDateTime departure = readDateTime("Planned departure (yyyy-MM-dd HH:mm:ss): ");
-        LocalDateTime arrival = readDateTime("Planned arrival (yyyy-MM-dd HH:mm:ss): ");
-
-        Flight flight = new Flight(flightNumber, origin, destination, departure, arrival);
-        boolean added = airlines.get(airlineIndex).addFlight(flight);
-        if (!added) {
-            printlnError("Could not add flight to airline (duplicate or airline capacity reached).");
-            return;
-        }
-
-        flights.insertAtBack(airlines.get(airlineIndex).getFlight(flightNumber)); // Get the actual flight object from the
-                                                                         // airline
-        saveState();
-        printlnSuccess("Flight created and assigned successfully.");
-    }
-
-    static void removeFlight(int flightIndex, boolean printSuccess) {
+    static void removeFlight(int flightIndex) {
         flights.get(flightIndex).getAirline().removeFlight(flights.get(flightIndex).getFlightNumber());
 
         flights.remove(flightIndex);
-        saveState();
-
-        if (printSuccess) {
-            saveState();
-            printlnSuccess("Flight removed successfully.");
-        }
-    }
-
-    static void addTicketToFlight(int flightIndex) {
-        Flight flight = flights.get(flightIndex);
-        System.out.println("Ticket Types: 1) Economy  2) Basic Economy  3) First Class");
-        int type = readInt("Select ticket type: ", 1, 3);
-
-        String passenger = readNonEmpty("Passenger name: ");
-        String seat = readNonEmpty("Seat number: ");
-        Ticket ticket;
-
-        if (type == 1) {
-            boolean mealIncluded = readYesNo("Meal included? (y/n): ");
-            ticket = new EconomyTicket(passenger, seat, mealIncluded);
-        } else if (type == 2) {
-            boolean mealIncluded = readYesNo("Meal included? (y/n): ");
-            boolean allowedCarryOn = readYesNo("Carry-on allowed? (y/n): ");
-            ticket = new BasicEconomyTicket(passenger, seat, mealIncluded, allowedCarryOn);
-        } else if (type == 3) {
-            boolean spa = readYesNo("Spa access included? (y/n): ");
-            ticket = new FirstClassTicket(passenger, seat, spa);
-        } else {
-            printlnError("Invalid ticket type.");
-            return;
-        }
-
-        if (readYesNo("Add lounge pass? (y/n): ")) {
-            int level = readInt("Lounge access level (1 or 2): ", 1, 2);
-            ticket.setLoungePass(new LoungePass(level));
-        }
-
-        boolean added = flight.addTicket(ticket);
-        if (!added) {
-            printlnError("Could not add ticket (duplicate, full flight, or class capacity reached).");
-            return;
-        }
-
-        saveState();
-        printlnSuccess("Ticket added successfully. Ticket ID: " + ticket.getTicketId());
-    }
-
-    static void refundTicketFromFlight(int flightIndex) {
-        String ticketId = readNonEmpty("Ticket ID to refund: ");
-        boolean removed = flights.get(flightIndex).refundTicket(ticketId);
-        if (!removed) {
-            printlnError("Ticket not found.");
-            return;
-        }
-
-        saveState();
-        printlnSuccess("Ticket refunded successfully.");
-    }
-
-    static void departFlight(int flightIndex) {
-        LocalDateTime departDate = readDateTime("Actual departure (yyyy-MM-dd HH:mm:ss): ");
-        flights.get(flightIndex).depart(departDate);
-        saveState();
-        printlnSuccess("Flight departure status updated.");
-    }
-
-    static void landFlight(int flightIndex) {
-        LocalDateTime landDate = readDateTime("Actual landing (yyyy-MM-dd HH:mm:ss): ");
-        flights.get(flightIndex).land(landDate);
-        saveState();
-        printlnSuccess("Flight landing status updated.");
     }
 
     static int findAirlineIndex(String name) {
@@ -691,122 +943,11 @@ public class AirportTest {
         return list;
     }
 
-    static String readNonEmpty(String prompt) {
-        while (true) {
-            System.out.print(prompt);
-            String value = input.nextLine().trim();
-            if (!value.isEmpty()) {
-                return value;
-            }
-            printlnError("Input cannot be empty.");
-        }
-    }
-
-    static int readInt(String prompt) {
-        while (true) {
-            System.out.print(prompt);
-            try {
-                return Integer.parseInt(input.nextLine().trim());
-            } catch (NumberFormatException e) {
-                printlnError("Please enter a valid number.");
-            }
-        }
-    }
-
-    static int readInt(String prompt, int min, int max) {
-        while (true) {
-            int value = readInt(prompt);
-            if (value >= min && value <= max) {
-                return value;
-            } else {
-                printlnError("Please enter a number between " + min + " and " + max + ".");
-            }
-        }
-    }
-
-    static LocalDateTime readDateTime(String prompt) {
-        while (true) {
-            System.out.print(prompt);
-            String value = input.nextLine().trim();
-            try {
-                return LocalDateTime.parse(value, INPUT_FORMAT);
-            } catch (DateTimeParseException e) {
-                printlnError(
-                        "Use format yyyy-MM-dd HH:mm:ss (example: " + LocalDateTime.now().format(INPUT_FORMAT) + ").");
-            }
-        }
-    }
-
-    static boolean readYesNo(String prompt) {
-        while (true) {
-            System.out.print(prompt);
-            String value = input.nextLine().trim().toLowerCase();
-            if (value.equals("y") || value.equals("yes"))
-                return true;
-            if (value.equals("n") || value.equals("no"))
-                return false;
-            printlnError("Please type y or n.");
-        }
-    }
-
     static void printlnSuccess(String message) {
         System.out.println("[SUCCESS] " + message);
-        pause(1000);
     }
 
     static void printlnError(String message) {
-        System.out.println("[ERROR] " + message);
-        pause(1000);
-    }
-
-    static void printlnBox(String message) {
-        System.out.println();
-        System.out.println("============================================");
-        System.out.println(message);
-        System.out.println("============================================");
-    }
-
-    static String repeat(String str, int count) {
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < count; i++)
-            sb.append(str);
-        return sb.toString();
-    }
-
-    // Pause helper: sleeps for ms milliseconds, handles interruption properly
-    static void pause(int ms) {
-        try {
-            Thread.sleep(ms);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
-    }
-
-    // Clear screen helper: tries platform clear commands, then ANSI, then newlines
-    static void clearScreen() {
-        try {
-            String os = System.getProperty("os.name").toLowerCase();
-            Process p;
-            if (os.contains("win")) {
-                // use cmd /c cls on Windows
-                p = new ProcessBuilder("cmd", "/c", "cls").inheritIO().start();
-                p.waitFor();
-            } else {
-                // try unix clear command
-                p = new ProcessBuilder("clear").inheritIO().start();
-                p.waitFor();
-            }
-        } catch (Exception e) {
-            // fallback to ANSI escape sequence
-            try {
-                final String ANSI_CLS = "\u001b[2J\u001b[H";
-                System.out.print(ANSI_CLS);
-                System.out.flush();
-            } catch (Exception ex) {
-                // last resort: print several newlines
-                for (int i = 0; i < 50; i++)
-                    System.out.println();
-            }
-        }
+        System.err.println("[ERROR] " + message);
     }
 }

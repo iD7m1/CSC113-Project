@@ -19,7 +19,7 @@ public class BasicEconomyTicket extends EconomyTicket {
         StringBuilder str = new StringBuilder();
         str.append("Basic ");
         str.append(super.toString());
-        str.append("Allowed Carry-On: ").append(allowedCarryOn ? "Yes" : "No").append("\n\t\t");
+        str.append("Allowed Carry-On: ").append(allowedCarryOn ? "Yes" : "No").append("\n        ");
         return str.toString();
     }
 }

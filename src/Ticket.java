@@ -42,17 +42,17 @@ public abstract class Ticket implements Refundable, Serializable {
 
     public String toString() {
         StringBuilder str = new StringBuilder();
-        str.append("Ticket ID: ").append(ticketId).append("\n\t\t");
-        str.append("Passenger: ").append(passengerName).append("\n\t\t");
-        str.append("Seat: ").append(seatNumber).append("\n\t\t");
-        str.append("Base Price: $").append(basePrice).append("\n\t\t");
+        str.append("Ticket ID: ").append(ticketId).append("\n        ");
+        str.append("Passenger: ").append(passengerName).append("\n        ");
+        str.append("Seat: ").append(seatNumber).append("\n        ");
+        str.append("Base Price: $").append(basePrice).append("\n        ");
 
         if (loungePass != null) {
-            str.append("Lounge Pass ID: ").append(loungePass.getPassId()).append("\n\t\t");
-            str.append("Lounge Access Level: ").append(loungePass.getAccessLevel()).append("\n\t\t");
-            str.append("Lounge Pass Price: $").append(loungePass.getPrice()).append("\n\t\t");
+            str.append("Lounge Pass ID: ").append(loungePass.getPassId()).append("\n        ");
+            str.append("Lounge Access Level: ").append(loungePass.getAccessLevel()).append("\n        ");
+            str.append("Lounge Pass Price: $").append(loungePass.getPrice()).append("\n        ");
         } else {
-            str.append("No Lounge Pass\n\t\t");
+            str.append("No Lounge Pass\n        ");
         }
         return str.toString();
 

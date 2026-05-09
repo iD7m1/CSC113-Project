@@ -59,10 +59,10 @@ public class Airline implements Serializable {
         str.append("Airline: ").append(name).append("\n");
         str.append("Flights:");
         for (int i = 0; i < flights.size(); i++) {
-            str.append("\n\t").append(flights.get(i).toString()).append("\n");
+            str.append("\n    ").append(flights.get(i).toString()).append("\n");
         }
         if (flights.size() == 0)
-            str.append("\n\tNo flights available.");
+            str.append("\n    No flights available.");
         return str.toString();
     }
 

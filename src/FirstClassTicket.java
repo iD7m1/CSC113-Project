@@ -28,9 +28,9 @@ public class FirstClassTicket extends Ticket {
 
     public String toString() {
         StringBuilder str = new StringBuilder();
-        str.append("First Class Ticket\n\t\t");
+        str.append("First Class Ticket\n        ");
         str.append(super.toString());
-        str.append("Includes Spa Access: ").append(includesSpaAccess ? "Yes" : "No").append("\n\t\t");
+        str.append("Includes Spa Access: ").append(includesSpaAccess ? "Yes" : "No").append("\n        ");
         return str.toString();
     }
 }

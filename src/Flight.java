@@ -99,6 +99,14 @@ public class Flight implements Serializable {
         return -1;
     }
 
+    public Ticket getTicketAt(int index) {
+        return tickets.get(index);
+    }
+
+    public int getTicketCount() {
+        return tickets.size();
+    }
+
     public void depart() {
         depart(LocalDateTime.now());
     }
@@ -132,21 +140,21 @@ public class Flight implements Serializable {
     public String toString() {
         StringBuilder str = new StringBuilder();
         str.append("Flight ").append(flightNumber).append(" (").append(airline.getName()).append(")")
-                .append("\n\tRoute: ").append(origin).append(" -> ").append(destination)
-                .append("\n\tDeparture: ")
+                .append("\n    Route: ").append(origin).append(" -> ").append(destination)
+                .append("\n    Departure: ")
                 .append(departureTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")))
-                .append("\n\tArrival: ").append(arrivalTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")))
-                .append("\n\tStatus: ").append(status)
-                .append("\n\tTotal Baggage Allowance: ").append(totalBaggageAllowance()).append(" kg")
-                .append("\n\tTotal Revenue: $").append(String.format("%.2f", totalRevenue));
+                .append("\n    Arrival: ").append(arrivalTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")))
+                .append("\n    Status: ").append(status)
+                .append("\n    Total Baggage Allowance: ").append(totalBaggageAllowance()).append(" kg")
+                .append("\n    Total Revenue: $").append(String.format("%.2f", totalRevenue));
 
         if (tickets.size() == 0) {
-            str.append("\n\t- No tickets booked.");
+            str.append("\n    - No tickets booked.");
         } else {
-            str.append("\n\tTickets (").append(tickets.size()).append("):");
+            str.append("\n    Tickets (").append(tickets.size()).append("):");
             int ticketIndex = 1;
             for (int i = 0; i < tickets.size(); i++) {
-                str.append("\n\t\t").append(ticketIndex++).append(") ").append(tickets.get(i));
+                str.append("\n        ").append(ticketIndex++).append(") ").append(tickets.get(i));
             }
         }
 
